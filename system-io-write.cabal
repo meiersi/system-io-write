@@ -1,0 +1,50 @@
+Name:                system-io-write
+Version:             0.1.0.0
+Synopsis:            Compile-time abstraction of writing of a bounded number of bytes to memory
+
+Description:         
+                     The main use of the provided /write abstraction/ is to
+                     share the implementation of encodings of Haskell values
+                     where the maximal number of bytes to be written per value
+                     is statically known.
+                     .
+                     This library only provides types and combinators for
+                     defining writes. A number of actual writes is provided by
+                     the @encoding-writes@ library. They are used together with
+                     the @Builder@ type from the @bytestring@ library to
+                     provide builders for a variety of encodings in the
+                     @encoding-builders@ library.
+                     
+
+Author:              Simon Meier, Jasper Van der Jeugt
+Copyright:           2010, 2011 Simon Meier
+                     2010 Jasper Van der Jeugt
+Maintainer:          Simon Meier <iridcode@gmail.com>
+
+License:             BSD3
+License-file:        LICENSE
+
+Homepage:            http://github.com/meiersi/system-io-write
+Bug-Reports:         http://github.com/meiersi/system-io-write/issues
+Stability:           Experimental
+
+Category:            System, Codec
+Build-type:          Simple
+Cabal-version:       >= 1.6
+
+Extra-source-files:  
+                     README.markdown
+                     CHANGES
+
+Source-repository head
+  Type: git
+  Location: https://github.com/meiersi/system-io-write.git
+
+Library
+  ghc-options:       -Wall
+
+  hs-source-dirs:    src
+
+  exposed-modules:   System.IO.Write
+  
+  build-depends:     base == 4.*
