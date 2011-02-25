@@ -46,5 +46,11 @@ Library
   hs-source-dirs:    src
 
   exposed-modules:   System.IO.Write
+                     System.IO.Write.Int
+                     System.IO.Write.Char
+                     System.IO.Write.Word
+                     System.IO.Write.Internal
+
+  other-modules:     System.IO.Write.Internal.UncheckedShifts
   
   build-depends:     base == 4.*
