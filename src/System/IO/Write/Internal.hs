@@ -49,15 +49,21 @@ module System.IO.Write.Internal (
   , getBound
   , getBound'
   , getPoke
-
   , exactWrite
   , boundedWrite
+
+  -- * Statically bounded @Write@s
+  , StaticWrite
+  , staticBound
   , writeStorable
   , writeLiftIO
   , writeIf
   , writeEq
   , writeOrdering
   , writeOrd
+  , writeNothing
+  -- , writeMaybe
+  -- , writeEither
 
   ) where
 
@@ -124,7 +130,7 @@ getBound (Write bound _) = bound
 -- case. Assumes that the bound of the write is data-independent.
 {-# INLINE getBound' #-}
 getBound' :: String             -- ^ Name of caller: for debugging purposes.
-          -> (a -> Write) 
+          -> StaticWrite a 
           -> Int
 getBound' msg write =
     getBound $ write $ error $ 
@@ -176,6 +182,51 @@ exactWrite size io = Write size (pokeN size io)
 boundedWrite :: Int -> Poke -> Write
 boundedWrite = Write
 
+------------------------------------------------------------------------------
+-- Statically Bounded Writes
+------------------------------------------------------------------------------
+
+-- | A @StaticWrite a@ is a function @w :: a -> Write@ such that the number of
+-- bytes written by @w x@ can be statically bounded for any value @x@; i.e.,
+-- the bound of @w x@ is independent of @x@. Hence,
+--
+-- > getBound (w undefined) = maxBytesWritten
+--
+-- Statically bounded writes are used to abstract over writing a bounded number
+-- of bytes to memory, while guaranteeing that the bound checks can be done
+-- with a statically known bound. 
+--
+-- Note that not all functions @a -> Write@ are statically bounded writes. For
+-- example, @writeAscii7@ defined as follows
+--
+-- > writeAscii7 :: Word8 -> Write
+-- > writeAscii7 w | w < 128   = writeWord8
+-- >               | otherwise = mempty
+--
+-- is no @StaticWrite Word8@. Written as it is, the resulting bound is
+-- dependent on the argument. The combinators given below simplify the
+-- combination of @StaticWrite@'s to form new @StaticWrite@'s that again
+-- use a data inpependent bound combination.
+--
+-- Using the @writeIf@ combinator, we can implement the above @writeAscii7@
+-- function such that it is a statically bounded write.
+--
+-- > writeAscii7' :: StaticWrite Word8
+-- > writeAscii7' = writeIf (<128) writeWord8 (const mempty)
+type StaticWrite a = a -> Write
+
+-- | @staticBound w@ is the maximal number of bytes written by @w x@ for any
+-- value @x@.
+--
+-- > staticBound w = getBound $ (w (error "staticBound: data-dependent bound"))
+--
+{-# INLINE staticBound #-}
+staticBound :: StaticWrite a -> Int
+staticBound w = getBound $ (w (error "staticBound: data-dependent bound"))
+
+maxStaticBound :: StaticWrite a -> StaticWrite b -> Int
+maxStaticBound w1 w2 = max (staticBound w1) (staticBound w2)
+
 -- | Write a storable value.
 {-# INLINE writeStorable #-}
 writeStorable :: Storable a => a -> Write 
@@ -184,10 +235,15 @@ writeStorable x = exactWrite (sizeOf x) (\op -> poke (castPtr op) x)
 -- | @writeLiftIO io write@ creates a write executes the @io@ action to compute
 -- the value that is then written.
 {-# INLINE writeLiftIO #-}
-writeLiftIO :: (a -> Write) -> IO a -> Write
+writeLiftIO :: StaticWrite a -> IO a -> Write
 writeLiftIO write io =
-    Write (getBound' "writeLiftIO" write) 
+    Write (staticBound write)
           (Poke $ \pf -> do x <- io; runWrite (write x) pf)
+
+-- | @writeNothing x@ never writes anything to memory.
+{-# INLINE writeNothing #-}
+writeNothing :: StaticWrite a
+writeNothing = const mempty
 
 -- | @writeIf p wTrue wFalse x@ creates a 'Write' with a 'Poke' equal to @wTrue
 -- x@, if @p x@ and equal to @wFalse x@ otherwise. The bound of this new
@@ -195,36 +251,38 @@ writeLiftIO write io =
 -- independent bound, if the bound for @wTrue@ and @wFalse@ is already data
 -- independent.
 {-# INLINE writeIf #-}
-writeIf :: (a -> Bool) -> (a -> Write) -> (a -> Write) -> (a -> Write)
-writeIf p wTrue wFalse x = 
-    boundedWrite (max (getBound $ wTrue x) (getBound $ wFalse x)) 
-                 (if p x then getPoke $ wTrue x else getPoke $ wFalse x)
+writeIf :: (a -> Bool) -> StaticWrite a -> StaticWrite a -> StaticWrite a
+writeIf p wTrue wFalse = 
+    \x -> boundedWrite (maxStaticBound wTrue wFalse)
+                       (if p x then getPoke (wTrue x) else getPoke (wFalse x))
 
 -- | Compare the value to a test value and use the first write action for the
 -- equal case and the second write action for the non-equal case.
 {-# INLINE writeEq #-}
-writeEq :: Eq a => a -> (a -> Write) -> (a -> Write) -> (a -> Write)
+writeEq :: Eq a => a -> StaticWrite a -> StaticWrite a -> StaticWrite a
 writeEq test = writeIf (test ==)
 
 -- | TODO: Test this. It might well be too difficult to use.
 --   FIXME: Better name required!
 {-# INLINE writeOrdering #-}
 writeOrdering :: (a -> Ordering) 
-              -> (a -> Write) -> (a -> Write) -> (a -> Write)
-              -> (a -> Write)
+              -> StaticWrite a   -- ^ @StaticWrite@ for case 'LT'
+              -> StaticWrite a   -- ^ @StaticWrite@ for case 'EQ'
+              -> StaticWrite a   -- ^ @StaticWrite@ for case 'GT'
+              -> StaticWrite a
 writeOrdering ord wLT wEQ wGT x = 
     boundedWrite bound (case ord x of LT -> getPoke $ wLT x; 
                                       EQ -> getPoke $ wEQ x; 
                                       GT -> getPoke $ wGT x)
   where
-    bound = max (getBound $ wLT x) (max (getBound $ wEQ x) (getBound $ wGT x))
+    bound = max (staticBound wLT) (maxStaticBound wEQ wGT)
 
 -- | A write combinator useful to build decision trees for deciding what value
 -- to write with a constant bound on the maximal number of bytes written.
 {-# INLINE writeOrd #-}
 writeOrd :: Ord a 
        => a
-       -> (a -> Write) -> (a -> Write) -> (a -> Write)
-       -> (a -> Write)
+       -> StaticWrite a -> StaticWrite a -> StaticWrite a
+       -> StaticWrite a
 writeOrd test = writeOrdering (`compare` test)
 
