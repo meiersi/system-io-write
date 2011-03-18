@@ -40,11 +40,23 @@
 module System.IO.Write (
   -- * The @Write@ type
     Write
-
-  -- * @StaticWrite@s
-  , StaticWrite
+  , comapWrite
+  , writeNothing
   , writeIf
   , writeMaybe
+  , writeEither
+  , write2
+  , write3
+  , write4
+
+  -- * @FixedWrite@s
+  , FixedWrite
+  , fixWrite
+  , (#)
+  , prepend
+  , (#>)
+  , append
+  , (<#)
 
   -- * Writing @Word@s
   , module System.IO.Write.Word

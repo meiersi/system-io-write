@@ -15,7 +15,6 @@
 module System.IO.Write.Char
     ( 
       writeCharUtf8
-
     ) where
 
 import Foreign
@@ -26,8 +25,8 @@ import System.IO.Write.Internal
 -- | Write a UTF-8 encoded Unicode character to a buffer.
 --
 {-# INLINE writeCharUtf8 #-}
-writeCharUtf8 :: Char -> Write
-writeCharUtf8 c = boundedWrite 4 (encodeCharUtf8 f1 f2 f3 f4 c)
+writeCharUtf8 :: Write Char
+writeCharUtf8 = write 4 (encodeCharUtf8 f1 f2 f3 f4)
   where
     f1 x1          = pokeN 1 $ \op -> do pokeByteOff op 0 x1
 
