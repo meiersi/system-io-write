@@ -41,11 +41,10 @@ module System.IO.Write (
   -- * The @Write@ type
     Write
 
-  -- * @Write@ combinators
+  -- * @StaticWrite@s
+  , StaticWrite
   , writeIf
-  , writeEq
-  , writeOrdering
-  , writeOrd
+  , writeMaybe
 
   -- * Writing @Word@s
   , module System.IO.Write.Word

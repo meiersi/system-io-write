@@ -47,7 +47,6 @@ module System.IO.Write.Internal (
   , Write
   , runWrite
   , getBound
-  , getBound'
   , getPoke
   , exactWrite
   , boundedWrite
@@ -55,15 +54,15 @@ module System.IO.Write.Internal (
   -- * Statically bounded @Write@s
   , StaticWrite
   , staticBound
-  , writeStorable
-  , writeLiftIO
   , writeIf
-  , writeEq
-  , writeOrdering
-  , writeOrd
-  , writeNothing
-  -- , writeMaybe
-  -- , writeEither
+  , writeMaybe
+  , writeEither
+  , write2
+  , write3
+  , write4
+
+  , writeIO
+  , writeStorable
 
   ) where
 
@@ -232,18 +231,13 @@ maxStaticBound w1 w2 = max (staticBound w1) (staticBound w2)
 writeStorable :: Storable a => a -> Write 
 writeStorable x = exactWrite (sizeOf x) (\op -> poke (castPtr op) x)
 
--- | @writeLiftIO io write@ creates a write executes the @io@ action to compute
+-- | @writeIO io write@ creates a write executes the @io@ action to compute
 -- the value that is then written.
-{-# INLINE writeLiftIO #-}
-writeLiftIO :: StaticWrite a -> IO a -> Write
-writeLiftIO write io =
+{-# INLINE writeIO #-}
+writeIO :: StaticWrite a -> IO a -> Write
+writeIO write io =
     Write (staticBound write)
           (Poke $ \pf -> do x <- io; runWrite (write x) pf)
-
--- | @writeNothing x@ never writes anything to memory.
-{-# INLINE writeNothing #-}
-writeNothing :: StaticWrite a
-writeNothing = const mempty
 
 -- | @writeIf p wTrue wFalse x@ creates a 'Write' with a 'Poke' equal to @wTrue
 -- x@, if @p x@ and equal to @wFalse x@ otherwise. The bound of this new
@@ -252,17 +246,74 @@ writeNothing = const mempty
 -- independent.
 {-# INLINE writeIf #-}
 writeIf :: (a -> Bool) -> StaticWrite a -> StaticWrite a -> StaticWrite a
-writeIf p wTrue wFalse = 
-    \x -> boundedWrite (maxStaticBound wTrue wFalse)
-                       (if p x then getPoke (wTrue x) else getPoke (wFalse x))
+writeIf p wTrue wFalse x = 
+    boundedWrite (maxStaticBound wTrue wFalse)
+                 (if p x then getPoke (wTrue x) else getPoke (wFalse x))
+
+{-# INLINE writeMaybe #-}
+writeMaybe :: Write
+           -> StaticWrite a
+           -> StaticWrite (Maybe a)
+writeMaybe wNothing wJust x =
+    boundedWrite (max (getBound wNothing) (staticBound wJust))
+                 (maybe (getPoke wNothing) (getPoke . wJust) x)
+
+{-# INLINE writeEither #-}
+writeEither :: StaticWrite a
+            -> StaticWrite b
+            -> StaticWrite (Either a b)
+writeEither wLeft wRight x =
+    boundedWrite (maxStaticBound wLeft wRight)
+                 (either (getPoke . wLeft) (getPoke . wRight) x)
+infixr 4 <>
+
+(<>) :: Monoid a => a -> a -> a
+(<>) = mappend
+
+{-# INLINE write2 #-}
+write2 :: StaticWrite a
+       -> StaticWrite b
+       -> StaticWrite (a, b)
+write2 w1 w2 x =
+    boundedWrite (maxStaticBound w1 w2) (pok x)
+  where
+    pok (a, b) = getPoke $ w1 a <> w2 b
+
+{-# INLINE write3 #-}
+write3 :: StaticWrite a
+       -> StaticWrite b
+       -> StaticWrite c
+       -> StaticWrite (a, b, c)
+write3 w1 w2 w3 x =
+    boundedWrite (max (staticBound w1) (maxStaticBound w2 w3)) (pok x)
+  where
+    pok (a, b, c) = getPoke $ w1 a <> w2 b <> w3 c
+
+{-# INLINE write4 #-}
+write4 :: StaticWrite a
+       -> StaticWrite b
+       -> StaticWrite c
+       -> StaticWrite d
+       -> StaticWrite (a, b, c, d)
+write4 w1 w2 w3 w4 x =
+    boundedWrite (max (maxStaticBound w1 w2) (maxStaticBound w3 w4)) (pok x)
+  where
+    pok (a, b, c, d) = getPoke $ w1 a <> w2 b <> w3 c <> w4 d
+
+
+{- unnecessary
+
+-- | @writeNothing x@ never writes anything to memory.
+{-# INLINE writeNothing #-}
+writeNothing :: StaticWrite a
+writeNothing = const mempty
 
 -- | Compare the value to a test value and use the first write action for the
 -- equal case and the second write action for the non-equal case.
 {-# INLINE writeEq #-}
 writeEq :: Eq a => a -> StaticWrite a -> StaticWrite a -> StaticWrite a
 writeEq test = writeIf (test ==)
-
--- | TODO: Test this. It might well be too difficult to use.
+ 
 --   FIXME: Better name required!
 {-# INLINE writeOrdering #-}
 writeOrdering :: (a -> Ordering) 
@@ -286,3 +337,4 @@ writeOrd :: Ord a
        -> StaticWrite a
 writeOrd test = writeOrdering (`compare` test)
 
+-}
