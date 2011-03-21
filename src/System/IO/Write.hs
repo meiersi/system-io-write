@@ -40,12 +40,23 @@
 module System.IO.Write (
   -- * The @Write@ type
     Write
-
-  -- * @Write@ combinators
+  , comapWrite
+  , writeNothing
   , writeIf
-  , writeEq
-  , writeOrdering
-  , writeOrd
+  , writeMaybe
+  , writeEither
+  , write2
+  , write3
+  , write4
+
+  -- * @FixedWrite@s
+  , FixedWrite
+  , fixWrite
+  , (#)
+  , prepend
+  , (#>)
+  , append
+  , (<#)
 
   -- * Writing @Word@s
   , module System.IO.Write.Word
