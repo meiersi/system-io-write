@@ -1,1 +1,6 @@
+*.o
+*.hi
+
 dist
+
+benchmarks/Hex
