@@ -28,11 +28,13 @@ import Criterion.Main
 ------------------------------------------------------------------------------
 
 nRepl :: Int
-nRepl = 1000
+nRepl = 100000
 
 main :: IO ()
 main = defaultMain 
-    [ bench ("ehexWord8Lower (" ++ show nRepl ++ ")") $
+    [ bench ("thexWord8Lower (" ++ show nRepl ++ ")") $
+        whnf tbenchHexWord8Lower 31
+    , bench ("ehexWord8Lower (" ++ show nRepl ++ ")") $
         whnf ebenchHexWord8Lower 31
     , bench ("hexWord8Lower (" ++ show nRepl ++ ")") $
         whnf benchHexWord8Lower 31
@@ -45,6 +47,10 @@ benchHexWord8Lower = S.length . toByteStringReplicated nRepl hexWord8Lower
 {-# NOINLINE ebenchHexWord8Lower #-}
 ebenchHexWord8Lower :: Word8 -> Int
 ebenchHexWord8Lower = S.length . etoByteStringReplicated nRepl ehexWord8Lower
+
+{-# NOINLINE tbenchHexWord8Lower #-}
+tbenchHexWord8Lower :: Word8 -> Int
+tbenchHexWord8Lower = S.length . toByteStringReplicated nRepl writeBase16
 
 ------------------------------------------------------------------------------
 -- Combinators
@@ -188,3 +194,31 @@ etoByteStringReplicated n0 w x = S.inlinePerformIO $ do
     size = n0 * ebound w
 
 
+------------------------------------------------------------------------------
+-- Table based encoding
+------------------------------------------------------------------------------
+
+
+{-# INLINE writeBase16 #-}
+writeBase16 :: Write Word8
+writeBase16 = 
+    exactWrite 2 $ \x op -> poke (castPtr op) =<< enc x
+  where
+    enc :: Word8 -> IO Word16
+    enc = peekElemOff (unsafeForeignPtrToPtr encodeTable) . fromIntegral
+            
+{-# NOINLINE alphabet #-}
+alphabet :: S.ByteString
+alphabet = S.pack $ map (fromIntegral . fromEnum) $ ['0'..'9'] ++ ['A'..'F']
+
+-- FIXME: Check that the implementation of the lookup table aslo works on
+-- big-endian systems.
+{-# NOINLINE encodeTable #-} 
+encodeTable :: ForeignPtr Word16
+encodeTable = unsafePerformIO $ do
+    fp <- mallocForeignPtrArray (16*16)
+    let ix = fromIntegral . S.index alphabet
+    withForeignPtr fp $ \p ->
+        sequence_ [ pokeElemOff p (j*16+k) ((ix k `shiftL` 8) .|. ix j)
+                  | j <- [0..15], k <- [0..15] ]
+    return fp
