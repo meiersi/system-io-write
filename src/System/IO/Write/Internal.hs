@@ -42,6 +42,7 @@ module System.IO.Write.Internal (
     Poke
   , runPoke
   , pokeN
+  , pokeIO
 
   -- * Writing to a buffer
   , FixedWrite
@@ -119,6 +120,9 @@ infix 1 #
 pokeN :: Int 
        -> (Ptr Word8 -> IO ()) -> Poke
 pokeN size io = Poke $ \op -> io op >> return (op `plusPtr` size)
+
+pokeIO :: (Ptr Word8 -> IO (Ptr Word8)) -> Poke
+pokeIO = Poke
 
 comapWrite :: (b -> a) -> Write a -> Write b
 comapWrite g (Write b f) = Write b (f . g)
