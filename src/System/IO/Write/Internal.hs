@@ -53,6 +53,7 @@ module System.IO.Write.Internal (
   , Write
   , runWrite
   , writeBound
+  , writePoke
   , write
   , exactWrite
 
@@ -70,6 +71,7 @@ module System.IO.Write.Internal (
   , write2
   , write3
   , write4
+  , write8
 
   , writeLiftIO
   , writeStorable
@@ -248,6 +250,20 @@ write4 w1 w2 w3 w4 =
     f (a, b, c, d) = writePoke w1 a `mappend` writePoke w2 b 
                                     `mappend` writePoke w3 c
                                     `mappend` writePoke w4 d
+{-# INLINE write8 #-}
+write8 :: Write a1 -> Write a2 -> Write a3 -> Write a4
+       -> Write a5 -> Write a6 -> Write a7 -> Write a8
+       -> Write (a1, a2, a3, a4, a5, a6, a7, a8)
+write8 w1 w2 w3 w4 w5 w6 w7 w8=
+    Write (addWriteBounds w1 w2 + addWriteBounds w3 w4 +
+           addWriteBounds w5 w6 + addWriteBounds w7 w8) f
+  where
+    f (x1, x2, x3, x4, x5, x6, x7, x8) =
+        writePoke w1 x1 `mappend` writePoke w2 x2 `mappend`
+        writePoke w3 x3 `mappend` writePoke w4 x4 `mappend`
+        writePoke w5 x5 `mappend` writePoke w6 x6 `mappend`
+        writePoke w7 x7 `mappend` writePoke w8 x8
+
 
 
 -- | @writeNothing x@ never writes anything to memory.

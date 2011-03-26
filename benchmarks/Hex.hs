@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ScopedTypeVariables, BangPatterns #-}
 -- |
 -- Copyright   : (c) 2011 Simon Meier
 -- License     : BSD3-style (see LICENSE)
@@ -10,6 +10,8 @@
 -- Benchmark 'Write' combinators to build hexadecimal encodings for enumerable
 -- types given a concrete character encoding.
 module Hex where
+
+import Control.Applicative 
 
 import Data.Bits
 
@@ -28,18 +30,46 @@ import Criterion.Main
 ------------------------------------------------------------------------------
 
 nRepl :: Int
-nRepl = 100000
+nRepl = 1000
 
 {-# NOINLINE word8s #-}
 word8s :: [Word8]
-word8s = map fromIntegral $ [(0::Int)..]
+word8s = map fromIntegral $ [(0::Word64)..]
 
 {-# NOINLINE word16s #-}
 word16s :: [Word16]
-word16s = map fromIntegral $ [(0::Int)..]
+word16s = map fromIntegral $ [(0::Word64)..]
+
+{-# NOINLINE word32s #-}
+word32s :: [Word32]
+word32s = map fromIntegral $ [(0::Word64)..]
+
+{-# NOINLINE word64s #-}
+word64s :: [Word64]
+word64s = map fromIntegral $ [(0::Word64)..]
 
 main :: IO ()
 main = defaultMain 
+    [ 
+      benchmark "no leading zeros - Word8"  hexNoLead word8s
+    , benchmark "no leading zeros - Word16" hexNoLead word16s
+    , benchmark "no leading zeros - Word32" hexNoLead word32s
+    , benchmark "no leading zeros - Word64" hexNoLead word64s
+
+    , benchmark "fixed (hand unrolled) - Word8"  hex word8s
+    , benchmark "fixed (hand unrolled) - Word16" hex word16s
+    , benchmark "fixed (hand unrolled) - Word32" hex word32s
+    , benchmark "fixed (hand unrolled) - Word64" hex word64s
+
+      {-
+      benchmark "fixed (loop) - Word8"  (writeBase16Bytes 1) word8s
+    , benchmark "fixed (loop) - Word16" (writeBase16Bytes 2) word16s
+    , benchmark "fixed (loop) - Word32" (writeBase16Bytes 4) word32s
+    , benchmark "fixed (loop) - Word64" (writeBase16Bytes 8) word64s
+    -}
+
+    ]
+    {-
     [ bench ("thexWord16sLower (" ++ show nRepl ++ ")") $
         whnf tbenchHexWord16sLower word16s
     , bench ("hexWord16sLower (" ++ show nRepl ++ ")") $
@@ -53,6 +83,14 @@ main = defaultMain
     -- , bench ("ehexWord8sLower (" ++ show nRepl ++ ")") $
         -- whnf ebenchHexWord8sLower word8s
     ]
+    -}
+
+
+{-# INLINE benchmark #-}
+benchmark :: String -> Write a -> [a] -> Benchmark
+benchmark name w xs = 
+  bench (name ++" (" ++ show nRepl ++ ")") $ 
+    whnf (S.length . toByteStringList nRepl w) xs
 
 {-# NOINLINE benchHexWord8sLower #-}
 benchHexWord8sLower :: [Word8] -> Int
@@ -66,13 +104,13 @@ benchHexWord16sLower = S.length . toByteStringList nRepl hexWord16Lower
 -- ebenchHexWord8sLower :: [Word8] -> Int
 -- ebenchHexWord8sLower = S.length . etoByteStringList nRepl ehexWord8Lower
 
-{-# NOINLINE tbenchHexWord8sLower #-}
-tbenchHexWord8sLower :: [Word8] -> Int
-tbenchHexWord8sLower = S.length . toByteStringList nRepl writeBase16
+-- {-# NOINLINE tbenchHexWord8sLower #-}
+-- tbenchHexWord8sLower :: [Word8] -> Int
+-- tbenchHexWord8sLower = S.length . toByteStringList nRepl writeWord8Base16
 
-{-# NOINLINE tbenchHexWord16sLower #-}
-tbenchHexWord16sLower :: [Word16] -> Int
-tbenchHexWord16sLower = S.length . toByteStringList nRepl writeWord16Base16
+-- {-# NOINLINE tbenchHexWord16sLower #-}
+-- tbenchHexWord16sLower :: [Word16] -> Int
+-- tbenchHexWord16sLower = S.length . toByteStringList nRepl writeWord16Base16
 
 {-# NOINLINE lbenchHexWord8sLower #-}
 lbenchHexWord8sLower :: [Word8] -> Int
@@ -258,90 +296,8 @@ etoByteStringReplicated n0 w x = S.inlinePerformIO $ do
   where
     size = n0 * ebound w
 
-
 ------------------------------------------------------------------------------
--- Table based encoding
-------------------------------------------------------------------------------
-
-
-{-# INLINE writeBase16 #-}
-writeBase16 :: Write Word8
-writeBase16 = 
-    exactWrite 2 $ \x op -> poke (castPtr op) =<< enc x
-  where
-    enc :: Word8 -> IO Word16
-    enc = peekElemOff (unsafeForeignPtrToPtr encodeTable) . fromIntegral
-            
-{-# NOINLINE alphabet #-}
-alphabet :: S.ByteString
-alphabet = S.pack $ map (fromIntegral . fromEnum) $ ['0'..'9'] ++ ['A'..'F']
-
--- FIXME: Check that the implementation of the lookup table aslo works on
--- big-endian systems.
---
--- !! Does not work. !!
-{-# NOINLINE encodeTable #-} 
-encodeTable :: ForeignPtr Word16
-encodeTable = unsafePerformIO $ do
-    fp <- mallocForeignPtrArray (16*16)
-    let ix = fromIntegral . S.index alphabet
-    withForeignPtr fp $ \p ->
-        sequence_ [ pokeElemOff p (j*16+k) ((ix k `shiftL` 8) .|. ix j)
-                  | j <- [0..15], k <- [0..15] ]
-    return fp
-
-encodeByteString = S.PS (castForeignPtr encodeTable) 0 512
-
-encodeByteString2 = S.PS (castForeignPtr encodeTable2) 0 512
-
-encodeTable2 :: ForeignPtr Word16
-encodeTable2 = 
-    case table of S.PS fp _ _ -> castForeignPtr fp
-  where
-    ix    = fromIntegral . S.index alphabet
-    table = S.pack $ concat $ [ [ix j, ix k] | j <- [0..15], k <- [0..15] ]
-
-
-xalphabet :: S.ByteString
-xalfaFP :: ForeignPtr Word8
-xalphabet@(S.PS xalfaFP _ _) = S.pack $ [65..90] ++ [97..122] ++ [48..57] ++ [43,47]
-
-xencodeTable :: ForeignPtr Word16
-xencodeTable = unsafePerformIO $ do
-  fp <- mallocForeignPtrArray 4096
-  let ix = fromIntegral . S.index xalphabet
-  withForeignPtr fp $ \p ->
-    sequence_ [ pokeElemOff p (j*64+k) ((ix k `shiftL` 8) .|. ix j)
-                | j <- [0..63], k <- [0..63] ]
-  return fp
-
-xencodeByteString = S.PS (castForeignPtr xencodeTable) 0 (2*4096)
-
-xencodeByteString2 = S.PS (castForeignPtr xencodeTable2) 0 (2*4096)
-
-xencodeTable2 :: ForeignPtr Word16
-xencodeTable2 = 
-    case table of S.PS fp _ _ -> castForeignPtr fp
-  where
-    ix    = fromIntegral . S.index xalphabet
-    table = S.pack $ concat $ [ [ix j, ix k] | j <- [0..63], k <- [0..63] ]
-
-{-# INLINE writeWord16Base16 #-}
-writeWord16Base16 :: Write Word16
-writeWord16Base16 = 
-    write2 writeBase16 writeBase16 #.# 
-        (\x -> (fromIntegral $ x `shiftR` 8, fromIntegral x))
-{-
-    exactWrite 4 $ \x op -> do
-        poke (castPtr op              ) =<< enc (fromIntegral (x `shiftR` 8))
-        poke (castPtr (op `plusPtr` 2)) =<< enc (fromIntegral x             )
-  where
-    enc :: Word8 -> IO Word16
-    enc = peekElemOff (unsafeForeignPtrToPtr encodeTable) . fromIntegral
--}
-
-------------------------------------------------------------------------------
--- Loop based encoding
+-- Loop based encoding of individual nibbles
 ------------------------------------------------------------------------------
 
 {-# INLINE writeNibbles #-}
@@ -358,3 +314,197 @@ writeNibbles w n0 =
 {-# INLINE lhexWord8Lower #-}
 lhexWord8Lower :: Write Word8
 lhexWord8Lower = writeNibbles nibbleUtf8Lower 2 #.# fromIntegral
+
+
+------------------------------------------------------------------------------
+-- Table based encoding
+------------------------------------------------------------------------------
+
+upperAlphabet :: S.ByteString
+upperAlphabet = S.pack $ map (fromIntegral . fromEnum) $ ['0'..'9'] ++ ['A'..'F']
+
+lowerAlphabet :: S.ByteString
+lowerAlphabet = S.pack $ map (fromIntegral . fromEnum) $ ['0'..'9'] ++ ['a'..'f']
+
+encodingTable :: S.ByteString -> EncodingTable
+encodingTable alphabet =
+    case table of S.PS fp _ _ -> EncodingTable fp
+  where
+    ix    = fromIntegral . S.index alphabet
+    table = S.pack $ concat $ [ [ix j, ix k] | j <- [0..15], k <- [0..15] ]
+
+newtype EncodingTable = EncodingTable (ForeignPtr Word8)
+
+{-# NOINLINE upperTable #-}
+upperTable :: EncodingTable
+upperTable = encodingTable upperAlphabet
+
+{-# NOINLINE lowerTable #-}
+lowerTable :: EncodingTable
+lowerTable = encodingTable lowerAlphabet
+
+{-# INLINE encode4_as_8 #-}
+encode4_as_8 :: EncodingTable -> Word8 -> IO Word8
+encode4_as_8 (EncodingTable table) x = 
+    peek8 (2 * fromIntegral x + 1)
+  where
+    peek8 :: Int -> IO Word8
+    peek8 = peekElemOff (unsafeForeignPtrToPtr table)
+
+{-# INLINE encode8_as_16h #-}
+encode8_as_16h :: EncodingTable -> Word8 -> IO Word16
+encode8_as_16h (EncodingTable table) = 
+    peekElemOff (castPtr $ unsafeForeignPtrToPtr table) . fromIntegral
+
+{-# INLINE encode8_as_8_8 #-}
+encode8_as_8_8 :: EncodingTable -> Word8 -> IO (Word8, Word8)
+encode8_as_8_8 (EncodingTable table) x = 
+    (,) <$> peek8 i <*> peek8 (i +1)
+  where
+    i = 2 * fromIntegral x
+    peek8 :: Int -> IO Word8
+    peek8 = peekElemOff (unsafeForeignPtrToPtr table)
+
+
+
+------------------------------------------------------------------------------
+-- Class based interface
+------------------------------------------------------------------------------
+
+class Base16Utf8Writable a where
+    base16Lower       :: Write a
+    base16Upper       :: Write a
+    base16UpperNoLead :: Write a
+    base16LowerNoLead :: Write a
+
+hex :: Base16Utf8Writable a => Write a
+hex = base16Lower
+
+hexNoLead :: Base16Utf8Writable a => Write a
+hexNoLead = base16LowerNoLead
+
+instance Base16Utf8Writable Word8 where
+    {-# INLINE base16Lower #-}
+    {-# INLINE base16Upper #-}
+    {-# INLINE base16LowerNoLead #-}
+    {-# INLINE base16UpperNoLead #-}
+    base16Lower       = word8Base16 lowerTable
+    base16Upper       = word8Base16 upperTable
+    base16UpperNoLead = word8Base16NoLead lowerTable
+    base16LowerNoLead = word8Base16NoLead upperTable
+
+instance Base16Utf8Writable Word16 where
+    {-# INLINE base16Lower #-}
+    {-# INLINE base16Upper #-}
+    {-# INLINE base16LowerNoLead #-}
+    {-# INLINE base16UpperNoLead #-}
+    base16Lower       = word16Base16 lowerTable
+    base16Upper       = word16Base16 upperTable
+    base16UpperNoLead = base16NoLead lowerTable
+    base16LowerNoLead = base16NoLead upperTable
+
+instance Base16Utf8Writable Word32 where
+    {-# INLINE base16Lower #-}
+    {-# INLINE base16Upper #-}
+    {-# INLINE base16LowerNoLead #-}
+    {-# INLINE base16UpperNoLead #-}
+    base16Lower       = word32Base16 lowerTable
+    base16Upper       = word32Base16 upperTable
+    base16UpperNoLead = base16NoLead lowerTable
+    base16LowerNoLead = base16NoLead upperTable
+
+instance Base16Utf8Writable Word64 where
+    {-# INLINE base16Lower #-}
+    {-# INLINE base16Upper #-}
+    {-# INLINE base16LowerNoLead #-}
+    {-# INLINE base16UpperNoLead #-}
+    base16Lower       = word64Base16 lowerTable
+    base16Upper       = word64Base16 upperTable
+    base16UpperNoLead = base16NoLead lowerTable
+    base16LowerNoLead = base16NoLead upperTable
+
+{-# INLINE word8Base16 #-}
+word8Base16 :: EncodingTable -> Write Word8
+word8Base16 table = 
+    exactWrite 2 $ \x op -> poke (castPtr op) =<< encode8_as_16h table x
+
+{-# INLINE word16Base16 #-}
+word16Base16 :: EncodingTable -> Write Word16
+word16Base16 table = 
+    write2 (word8Base16 table) (word8Base16 table) #.# 
+           (\x -> let {-# INLINE byte #-}
+                      byte n = fromIntegral $ x `shiftR` (n * 8) in
+                  (byte 1, byte 0) 
+            )
+
+{-# INLINE word32Base16 #-}
+word32Base16 :: EncodingTable -> Write Word32
+word32Base16 table = 
+    write4 (word8Base16 table) (word8Base16 table) 
+           (word8Base16 table) (word8Base16 table) #.# 
+           (\x -> let {-# INLINE byte #-}
+                      byte n = fromIntegral $ x `shiftR` (n * 8) in
+                  (byte 3, byte 2, byte 1, byte 0) 
+            )
+
+{-# INLINE word64Base16 #-}
+word64Base16 :: EncodingTable -> Write Word64
+word64Base16 table = 
+    write8 (word8Base16 table) (word8Base16 table) 
+           (word8Base16 table) (word8Base16 table)
+           (word8Base16 table) (word8Base16 table)
+           (word8Base16 table) (word8Base16 table) #.# 
+           (\x -> let {-# INLINE byte #-}
+                      byte n = fromIntegral $ x `shiftR` (n * 8) in
+                  ( byte 7, byte 6, byte 5, byte 4
+                  , byte 3, byte 2, byte 1, byte 0 ) 
+            )
+
+{-# INLINE word8Base16NoLead #-}
+word8Base16NoLead :: EncodingTable -> Write Word8
+word8Base16NoLead table =
+    writeIf (<16) word4Base16 (word8Base16 table)
+  where
+    {-# INLINE word4Base16 #-}
+    word4Base16 =
+        exactWrite 1 $ \x op -> poke op =<< encode4_as_8 table x
+
+{-# INLINE base16NoLead #-}
+base16NoLead :: forall a. (Storable a, Bits a, Integral a) 
+                     => EncodingTable -> Write a
+base16NoLead table =
+    write (2 * maxBytes) (pokeIO . f)
+  where
+    maxBytes = (sizeOf (undefined :: a))
+
+    f 0  op0 = do runWrite writeWord8 (fromIntegral $ fromEnum '0') op0
+    f x0 op0 = do
+        let n0 = findNonZeroByte (maxBytes - 1)
+            x  = fromIntegral $ x0 `shiftR` (n0 * 8)
+        if x < 16
+          then do poke op0 =<< encode4_as_8 table x
+                  runWrite (base16Bytes n0      ) x0 (op0 `plusPtr` 1)
+          else do runWrite (base16Bytes (n0 + 1)) x0 op0
+      where
+        findNonZeroByte !n
+          | (x0 `shiftR` (8 * n) .&. 0xff) == 0 = findNonZeroByte (n - 1)
+          | otherwise                           = n
+
+
+    {-# INLINE base16Bytes #-}
+    base16Bytes :: (Bits a, Integral a) => Int -> Write a
+    base16Bytes n0 =
+        write (2 * max 0 n0) (pokeIO . g)
+      where
+        g !x0 !op0 = 
+            loop (n0 - 1) op0
+          where
+            loop n op
+              | n < 0     = do return op
+              | otherwise = do
+                  x <- encode8_as_16h table (fromIntegral $ x0 `shiftR` (n * 8))
+                  poke (castPtr op) x
+                  loop (n - 1) (op `plusPtr` 2)
+
+      
+
