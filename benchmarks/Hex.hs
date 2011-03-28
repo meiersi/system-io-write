@@ -14,8 +14,11 @@ module Hex where
 import Control.Applicative 
 
 import Data.Bits
+import Data.Char
 
 import Foreign
+
+import Numeric
 
 import System.IO.Write
 import System.IO.Write.Internal
@@ -390,8 +393,8 @@ instance Base16Utf8Writable Word8 where
     {-# INLINE base16UpperNoLead #-}
     base16Lower       = word8Base16 lowerTable
     base16Upper       = word8Base16 upperTable
-    base16UpperNoLead = word8Base16NoLead lowerTable
-    base16LowerNoLead = word8Base16NoLead upperTable
+    base16LowerNoLead = word8Base16NoLead lowerTable
+    base16UpperNoLead = word8Base16NoLead upperTable
 
 instance Base16Utf8Writable Word16 where
     {-# INLINE base16Lower #-}
@@ -400,8 +403,8 @@ instance Base16Utf8Writable Word16 where
     {-# INLINE base16UpperNoLead #-}
     base16Lower       = word16Base16 lowerTable
     base16Upper       = word16Base16 upperTable
-    base16UpperNoLead = base16NoLead lowerTable
-    base16LowerNoLead = base16NoLead upperTable
+    base16LowerNoLead = base16NoLead lowerTable
+    base16UpperNoLead = base16NoLead upperTable
 
 instance Base16Utf8Writable Word32 where
     {-# INLINE base16Lower #-}
@@ -410,8 +413,8 @@ instance Base16Utf8Writable Word32 where
     {-# INLINE base16UpperNoLead #-}
     base16Lower       = word32Base16 lowerTable
     base16Upper       = word32Base16 upperTable
-    base16UpperNoLead = base16NoLead lowerTable
-    base16LowerNoLead = base16NoLead upperTable
+    base16LowerNoLead = base16NoLead lowerTable
+    base16UpperNoLead = base16NoLead upperTable
 
 instance Base16Utf8Writable Word64 where
     {-# INLINE base16Lower #-}
@@ -420,8 +423,8 @@ instance Base16Utf8Writable Word64 where
     {-# INLINE base16UpperNoLead #-}
     base16Lower       = word64Base16 lowerTable
     base16Upper       = word64Base16 upperTable
-    base16UpperNoLead = base16NoLead lowerTable
-    base16LowerNoLead = base16NoLead upperTable
+    base16LowerNoLead = base16NoLead lowerTable
+    base16UpperNoLead = base16NoLead upperTable
 
 {-# INLINE word8Base16 #-}
 word8Base16 :: EncodingTable -> Write Word8
@@ -507,4 +510,129 @@ base16NoLead table =
                   loop (n - 1) (op `plusPtr` 2)
 
       
+------------------------------------------------------------------------------
+-- Testing Writes
+------------------------------------------------------------------------------
+
+type WriteResult = ( [Word8]         -- full list
+                   , [[Word8]]       -- split list
+                   , [Ptr Word8] )   -- in-write pointers
+data WriteFailure = WriteFailure  String  WriteResult  WriteResult
+
+showWriteResult :: ([Word8] -> String) -> Int -> WriteResult -> String
+showWriteResult line i (full, splits, ptrs) =
+    unlines $ zipWith (++) names 
+            $ map (quotes . line) (full : splits) ++ [ppPtrs]
+  where
+    names = [ show i ++ " total result:   "
+            , "  front slack:    "
+            , "  write result:   "
+            , "  reserved space: "
+            , "  back slack:     "
+            , "  pointers/diffs: "
+            ]
+    quotes xs = "'" ++ xs ++ "'"
+    ppPtrs = show (head ptrs) ++ do
+        (p1,p2) <- zip ptrs (tail ptrs)
+        "|" ++ show (p2 `minusPtr` p1) ++ "|" ++ show p2
+
+ 
+instance Show WriteFailure where
+    show (WriteFailure cause res1 res2) = unlines $
+            [ ""
+            , "Write violated post-condition: " ++ cause ++ "!"
+            ] ++
+            (map ("  " ++) $ lines $ unlines
+                [ "String based result comparison:"
+                , showWriteResult stringLine 1 res1, showWriteResult stringLine 2 res2
+                , "Hex based result comparison:"
+                , showWriteResult hexLine 1 res1, showWriteResult hexLine 2 res2 
+                ] )
+      where
+        hexLine = concatMap (\x -> pad2 $ showHex x "")
+        pad2 [ ] = '0':'0':[]
+        pad2 [x] = '0':x  :[]
+        pad2 xs  = xs
+
+        stringLine = map (toEnum . fromIntegral)
+
+testWrite :: Write a -> a -> Either WriteFailure [Word8]
+testWrite = testWriteWith (5, 11)
+
+testWriteWith :: (Int, Int) -> Write a -> a -> Either WriteFailure [Word8]
+testWriteWith (slackF, slackB) w x = unsafePerformIO $ do
+    res1@(xs1, _, _) <- execWrite (replicate (slackF + slackB + bound) 40)
+    res2             <- execWrite (invert xs1)
+    return $ check res1 res2
+  where
+    bound = writeBound w
+
+    invert = map complement
+
+    check res1@(xs1, [frontSlack1, written1, reserved1, backSlack1], ptrs1)
+          res2@(_  , [frontSlack2, written2, reserved2, backSlack2], ptrs2)
+      -- test properties of first write
+      | length frontSlack1 /= slackF                = err "front slack length"
+      | length backSlack1   /= slackB               = err "back slack length"
+      | length xs1 /= slackF + slackB + bound       = err "total length"
+      | not (ascending ptrs1)                       = err "pointers 1"
+      -- test remaining properties of second write
+      | not (ascending ptrs2)                       = err "pointers 2"
+      -- compare writes
+      | frontSlack1      /= invert frontSlack2      = err "front over-write"
+      | backSlack1       /= invert backSlack2       = err "back over-write"
+      | written1         /= written2                = err "different writes"
+      | length reserved1 /= length reserved2        = err "different reserved lengths"
+      | any (\(a,b) -> a /= complement b) untouched = err "different reserved usage"
+      | otherwise                                   = Right written1
+      where
+        (_, untouched) = break (uncurry (/=)) $ zip reserved1 reserved2
+        err info = Left (WriteFailure info res1 res2)
+        ascending xs = all (uncurry (<=)) $ zip xs (tail xs)
+    check _ _ = error "impossible"
+
+    execWrite ys0 = do
+      -- list-to-memory, run write, memory-to-list
+      (buf, r@(sp, ep)) <- listToRegion ys0
+      let op      = sp `plusPtr` slackF
+          opBound = op `plusPtr` bound
+      op' <- runWrite w x op
+      ys1 <- regionToList r
+      touchForeignPtr buf
+      -- cut the written list into: front slack, written, reserved, back slack
+      case splitAt (op `minusPtr` sp) ys1 of
+          (frontSlack, ys2) -> case splitAt (op' `minusPtr` op) ys2 of
+              (written, ys3) -> case splitAt (opBound `minusPtr` op') ys3 of
+                  (reserved, backSlack) -> return $
+                      (ys1, [frontSlack, written, reserved, backSlack], [sp, op, op', opBound, ep])
+
+
+    -- touch the returned foreign ptr for the region to stay valid!
+    listToRegion :: [Word8] -> IO (ForeignPtr Word8, (Ptr Word8, Ptr Word8))
+    listToRegion ys0 = do
+        let n = length ys0
+        fpbuf <- S.mallocByteString n
+        let sp = unsafeForeignPtrToPtr fpbuf
+        ep <- fill ys0 sp
+        return (fpbuf, (sp, ep))
+      where
+        fill []     op = do return op
+        fill (y:ys) op = do poke op y
+                            fill ys (op `plusPtr` 1)
+
+    regionToList :: (Ptr Word8, Ptr Word8) -> IO [Word8]
+    regionToList (sp0, ep0) =
+        go sp0
+      where
+        go sp | sp < ep0  = (:) <$> peek sp <*> go (sp `plusPtr` 1)
+              | otherwise = return []
+
+
+test :: Word8 -> Either WriteFailure [Word8]
+test = testWrite writeWord8
+
+wrongWrite :: Write Word8
+wrongWrite = 
+    write 1 (\_ -> pokeIO $ \op -> 
+                poke (op `plusPtr` (1)) (40::Word8) >> return (op `plusPtr` 2))
 
