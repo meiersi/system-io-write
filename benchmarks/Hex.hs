@@ -28,6 +28,13 @@ import qualified Data.ByteString.Internal as S
 
 import Criterion.Main
 
+import Test.Framework
+import Test.Framework.Providers.QuickCheck2
+-- import Test.Framework.Providers.HUnit
+-- import Test.QuickCheck
+-- import Test.HUnit hiding (Test)
+
+
 ------------------------------------------------------------------------------
 -- Benchmark
 ------------------------------------------------------------------------------
@@ -52,7 +59,7 @@ word64s :: [Word64]
 word64s = map fromIntegral $ [(0::Word64)..]
 
 main :: IO ()
-main = defaultMain 
+main = Criterion.Main.defaultMain 
     [ 
       benchmark "no leading zeros - Word8"  hexNoLead word8s
     , benchmark "no leading zeros - Word16" hexNoLead word16s
@@ -518,6 +525,7 @@ type WriteResult = ( [Word8]         -- full list
                    , [[Word8]]       -- split list
                    , [Ptr Word8] )   -- in-write pointers
 data WriteFailure = WriteFailure  String  WriteResult  WriteResult
+       deriving( Eq )
 
 showWriteResult :: ([Word8] -> String) -> Int -> WriteResult -> String
 showWriteResult line i (full, splits, ptrs) =
@@ -635,4 +643,52 @@ wrongWrite :: Write Word8
 wrongWrite = 
     write 1 (\_ -> pokeIO $ \op -> 
                 poke (op `plusPtr` (1)) (40::Word8) >> return (op `plusPtr` 2))
+
+mainTest :: IO ()
+mainTest = Test.Framework.defaultMain $ return $ testGroup "Tests" tests
+
+tests :: [Test]
+tests =
+    [ testProperty "word8"  prop_word8
+    , testProperty "word16BE" $ prop_bigEndian    writeWord16be
+    , testProperty "word32BE" $ prop_bigEndian    writeWord32be
+    , testProperty "word64BE" $ prop_bigEndian    writeWord64be
+
+    , testProperty "word16LE" $ prop_littleEndian writeWord16le
+    , testProperty "word32LE" $ prop_littleEndian writeWord32le
+    , testProperty "word64LE" $ prop_littleEndian writeWord64le
+
+    , testProperty "base16LowerNoLead :: Word8"  $ prop_base16NoLead id (base16LowerNoLead :: Write Word8)
+    , testProperty "base16LowerNoLead :: Word16" $ prop_base16NoLead id (base16LowerNoLead :: Write Word16)
+    , testProperty "base16LowerNoLead :: Word32" $ prop_base16NoLead id (base16LowerNoLead :: Write Word32)
+    , testProperty "base16LowerNoLead :: Word64" $ prop_base16NoLead id (base16LowerNoLead :: Write Word64)
+    ]
+
+prop_write :: Show a => (a -> [Word8]) -> Write a -> a -> Bool
+prop_write f w x 
+  | testWrite w x == Right (f x) = True
+  | otherwise                    = 
+        error $ unlines [show x, show (testWrite w x), show (f x)]
+
+prop_word8 :: Word8 -> Bool
+prop_word8 = prop_write (return . fromIntegral) writeWord8 
+
+prop_bigEndian :: (Storable a, Bits a, Integral a) => Write a -> a -> Bool
+prop_bigEndian =
+    prop_write f
+  where
+    f x = map (fromIntegral . (x `shiftR`) . (8*)) $ reverse [0..sizeOf x - 1]
+
+prop_littleEndian :: (Storable a, Bits a, Integral a) => Write a -> a -> Bool
+prop_littleEndian =
+    prop_write f
+  where
+    f x = map (fromIntegral . (x `shiftR`) . (8*)) $ [0..sizeOf x - 1]
+
+prop_base16NoLead :: Integral a => (Char -> Char) -> Write a -> a -> Bool
+prop_base16NoLead conv =
+    prop_write f
+  where
+    f x = map (fromIntegral . ord . conv) $ showHex x ""
+
 
