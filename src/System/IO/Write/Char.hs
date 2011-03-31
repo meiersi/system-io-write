@@ -1,6 +1,4 @@
-{-# OPTIONS_GHC -fno-warn-unused-imports #-} 
--- ignore warning from 'import Data.Text.Encoding'
-
+{-# LANGUAGE ScopedTypeVariables, BangPatterns #-}
 -- |
 -- Copyright   : (c) 2010 Jasper Van der Jeugt & Simon Meier
 -- License     : BSD3-style (see LICENSE)
@@ -9,18 +7,25 @@
 -- Stability   : experimental
 -- Portability : tested on GHC only
 --
--- 'Write's and 'Builder's for serializing Unicode characters using the UTF-8
--- encoding. 
+-- 'Write's to handle UTF-8 encoding of characters. 
 --
 module System.IO.Write.Char
     ( 
+      -- * UTF-8 encoded characters
       writeCharUtf8
+
+      -- * Hexadecimal encoding using UTF-8 encoded characters
+    , Base16Utf8Writable(..)
+    , hex
+    , hexNoLead
     ) where
 
 import Foreign
 import Data.Char (ord)
 
 import System.IO.Write.Internal
+import System.IO.Write.Internal.Base16
+import System.IO.Write.Word
 
 -- | Write a UTF-8 encoded Unicode character to a buffer.
 --
@@ -72,3 +77,144 @@ encodeCharUtf8 f1 f2 f3 f4 c = case ord c of
            in f4 x1 x2 x3 x4
 {-# INLINE encodeCharUtf8 #-}
 
+
+------------------------------------------------------------------------------
+-- Hexadecimal Encoding
+------------------------------------------------------------------------------
+
+class Base16Utf8Writable a where
+    base16Lower       :: Write a
+    base16Upper       :: Write a
+    base16UpperNoLead :: Write a
+    base16LowerNoLead :: Write a
+
+hex :: Base16Utf8Writable a => Write a
+hex = base16Lower
+
+hexNoLead :: Base16Utf8Writable a => Write a
+hexNoLead = base16LowerNoLead
+
+instance Base16Utf8Writable Word8 where
+    {-# INLINE base16Lower #-}
+    {-# INLINE base16Upper #-}
+    {-# INLINE base16LowerNoLead #-}
+    {-# INLINE base16UpperNoLead #-}
+    base16Lower       = word8Base16 lowerTable
+    base16Upper       = word8Base16 upperTable
+    base16LowerNoLead = word8Base16NoLead lowerTable
+    base16UpperNoLead = word8Base16NoLead upperTable
+
+instance Base16Utf8Writable Word16 where
+    {-# INLINE base16Lower #-}
+    {-# INLINE base16Upper #-}
+    {-# INLINE base16LowerNoLead #-}
+    {-# INLINE base16UpperNoLead #-}
+    base16Lower       = word16Base16 lowerTable
+    base16Upper       = word16Base16 upperTable
+    base16LowerNoLead = base16NoLead lowerTable
+    base16UpperNoLead = base16NoLead upperTable
+
+instance Base16Utf8Writable Word32 where
+    {-# INLINE base16Lower #-}
+    {-# INLINE base16Upper #-}
+    {-# INLINE base16LowerNoLead #-}
+    {-# INLINE base16UpperNoLead #-}
+    base16Lower       = word32Base16 lowerTable
+    base16Upper       = word32Base16 upperTable
+    base16LowerNoLead = base16NoLead lowerTable
+    base16UpperNoLead = base16NoLead upperTable
+
+instance Base16Utf8Writable Word64 where
+    {-# INLINE base16Lower #-}
+    {-# INLINE base16Upper #-}
+    {-# INLINE base16LowerNoLead #-}
+    {-# INLINE base16UpperNoLead #-}
+    base16Lower       = word64Base16 lowerTable
+    base16Upper       = word64Base16 upperTable
+    base16LowerNoLead = base16NoLead lowerTable
+    base16UpperNoLead = base16NoLead upperTable
+
+{-# INLINE word8Base16 #-}
+word8Base16 :: EncodingTable -> Write Word8
+word8Base16 table = 
+    exactWrite 2 $ \x op -> poke (castPtr op) =<< encode8_as_16h table x
+
+{-# INLINE word16Base16 #-}
+word16Base16 :: EncodingTable -> Write Word16
+word16Base16 table = 
+    write2 (word8Base16 table) (word8Base16 table) #.# 
+           (\x -> let {-# INLINE byte #-}
+                      byte n = fromIntegral $ x `shiftR` (n * 8) in
+                  (byte 1, byte 0) 
+            )
+
+{-# INLINE word32Base16 #-}
+word32Base16 :: EncodingTable -> Write Word32
+word32Base16 table = 
+    write4 (word8Base16 table) (word8Base16 table) 
+           (word8Base16 table) (word8Base16 table) #.# 
+           (\x -> let {-# INLINE byte #-}
+                      byte n = fromIntegral $ x `shiftR` (n * 8) in
+                  (byte 3, byte 2, byte 1, byte 0) 
+            )
+
+{-# INLINE word64Base16 #-}
+word64Base16 :: EncodingTable -> Write Word64
+word64Base16 table = 
+    write8 (word8Base16 table) (word8Base16 table) 
+           (word8Base16 table) (word8Base16 table)
+           (word8Base16 table) (word8Base16 table)
+           (word8Base16 table) (word8Base16 table) #.# 
+           (\x -> let {-# INLINE byte #-}
+                      byte n = fromIntegral $ x `shiftR` (n * 8) in
+                  ( byte 7, byte 6, byte 5, byte 4
+                  , byte 3, byte 2, byte 1, byte 0 ) 
+            )
+
+{-# INLINE word8Base16NoLead #-}
+word8Base16NoLead :: EncodingTable -> Write Word8
+word8Base16NoLead table =
+    writeIf (<16) word4Base16 (word8Base16 table)
+  where
+    {-# INLINE word4Base16 #-}
+    word4Base16 =
+        exactWrite 1 $ \x op -> poke op =<< encode4_as_8 table x
+
+{-# INLINE base16NoLead #-}
+base16NoLead :: forall a. (Storable a, Bits a, Integral a) 
+                     => EncodingTable -> Write a
+base16NoLead table =
+    write (2 * maxBytes) (pokeIO . f)
+  where
+    maxBytes = (sizeOf (undefined :: a))
+
+    f 0  op0 = do runWrite writeWord8 (fromIntegral $ fromEnum '0') op0
+    f x0 op0 = do
+        let n0 = findNonZeroByte (maxBytes - 1)
+            x  = fromIntegral $ x0 `shiftR` (n0 * 8)
+        if x < 16
+          then do poke op0 =<< encode4_as_8 table x
+                  runWrite (base16Bytes n0      ) x0 (op0 `plusPtr` 1)
+          else do runWrite (base16Bytes (n0 + 1)) x0 op0
+      where
+        findNonZeroByte !n
+          | (x0 `shiftR` (8 * n) .&. 0xff) == 0 = findNonZeroByte (n - 1)
+          | otherwise                           = n
+
+
+    {-# INLINE base16Bytes #-}
+    base16Bytes :: (Bits a, Integral a) => Int -> Write a
+    base16Bytes n0 =
+        write (2 * max 0 n0) (pokeIO . g)
+      where
+        g !x0 !op0 = 
+            loop (n0 - 1) op0
+          where
+            loop n op
+              | n < 0     = do return op
+              | otherwise = do
+                  x <- encode8_as_16h table (fromIntegral $ x0 `shiftR` (n * 8))
+                  poke (castPtr op) x
+                  loop (n - 1) (op `plusPtr` 2)
+
+      
