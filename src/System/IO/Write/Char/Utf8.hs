@@ -9,7 +9,7 @@
 --
 -- 'Write's to handle UTF-8 encoding of characters. 
 --
-module System.IO.Write.Char
+module System.IO.Write.Char.Utf8
     ( 
       -- * UTF-8 encoded characters
       writeCharUtf8

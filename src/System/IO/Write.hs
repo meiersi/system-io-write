@@ -64,12 +64,8 @@ module System.IO.Write (
   -- * Writing @Int@s
   , module System.IO.Write.Int
 
-  -- * Writing @Char@s
-  , module System.IO.Write.Char
-
   ) where
 
 import System.IO.Write.Internal
 import System.IO.Write.Word
 import System.IO.Write.Int
-import System.IO.Write.Char

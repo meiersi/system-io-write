@@ -47,10 +47,13 @@ Library
 
   exposed-modules:   System.IO.Write
                      System.IO.Write.Int
-                     System.IO.Write.Char
                      System.IO.Write.Word
+                     System.IO.Write.Char.Utf8
                      System.IO.Write.Internal
+                     System.IO.Write.Test
 
   other-modules:     System.IO.Write.Internal.UncheckedShifts
+                     System.IO.Write.Internal.Region
+                     System.IO.Write.Internal.Base16
   
   build-depends:     base == 4.*
