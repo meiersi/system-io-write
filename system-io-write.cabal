@@ -51,6 +51,7 @@ Library
                      System.IO.Write.Char.Utf8
                      System.IO.Write.Internal
                      System.IO.Write.Test
+                     -- System.IO.Write.Bench
 
   other-modules:     System.IO.Write.Internal.UncheckedShifts
                      System.IO.Write.Internal.Region
