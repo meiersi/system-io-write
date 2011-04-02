@@ -121,13 +121,13 @@ testWriteWith (slackF, slackB) w x = unsafePerformIO $ do
 
     -- list-to-memory, run write, memory-to-list, report results
     execWrite ys0 = do
-      (buf, size) <- R.fromList ys0
+      r@(buf, size) <- R.fromList ys0
       withForeignPtr buf $ \sp -> do
           let ep      = sp `plusPtr` size
               op      = sp `plusPtr` slackF
               opBound = op `plusPtr` bound
           op' <- runWrite w x op
-          ys1 <- R.toList (buf, op' `minusPtr` op)
+          ys1 <- R.toList r
           touchForeignPtr buf
           -- cut the written list into: front slack, written, reserved, back slack
           case splitAt (op `minusPtr` sp) ys1 of

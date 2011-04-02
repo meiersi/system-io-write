@@ -47,7 +47,8 @@ upperAlphabet = unsafePerformIO $
 
 {-# NOINLINE lowerAlphabet #-}
 lowerAlphabet :: EncodingTable
-lowerAlphabet = undefined -- S.pack $ map (fromIntegral . fromEnum) $ ['0'..'9'] ++ ['a'..'f']
+lowerAlphabet = unsafePerformIO $
+    tableFromList $ map (fromIntegral . fromEnum) $ ['0'..'9'] ++ ['a'..'f']
 
 base16EncodingTable :: EncodingTable -> IO EncodingTable
 base16EncodingTable alphabet = do

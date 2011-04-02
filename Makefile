@@ -1,8 +1,3 @@
-
-##############################################################################
-## Benchmarks
-##############################################################################
-
 ## Config
 #########
 
@@ -13,22 +8,43 @@ GHC = $(GHC7)
 
 GHCI = ghci-6.12.3
 
+##############################################################################
+## Benchmarks
+##############################################################################
 
 ## All benchmarks
-#################
-
+################# 
 bench-all: bench-hex
 
 clean-bench-all:
-	rm -f benchmarks/*.o benchmarks/*.hi
+	rm -f bench/*.o bench/*.hi
 
 ## Individual benchmarks
 ########################
 
 # hexadeximal encoding
 bench-hex:
-	$(GHC) --make -O2 -fforce-recomp -main-is Hex benchmarks/Hex.hs
-	./benchmarks/Hex --resamples 10000
+	$(GHC) --make -O2 -fforce-recomp -main-is Hex bench/Hex.hs
+	./bench/Hex --resamples 10000
 
 core-hex:
-	ghc-core -- --make -O2 -fforce-recomp -main-is Hex benchmarks/Hex.hs
+	ghc-core -- --make -O2 -fforce-recomp -main-is Hex bench/Hex.hs
+
+##############################################################################
+## Testing
+##############################################################################
+
+clean-test-all:
+	rm -f test/*.o test/*.hi
+
+test-all:
+	$(GHC) --make -O2 -threaded -rtsopts -fforce-recomp -main-is TestAll test/TestAll.hs
+	./test/TestAll -j2 -a 1000 +RTS -N2
+
+
+##############################################################################
+## Utilities
+##############################################################################
+
+clean: clean-bench-all clean-test-all
+
