@@ -12,7 +12,7 @@
 module System.IO.Write.Char.Utf8
     ( 
       -- * UTF-8 encoded characters
-      writeCharUtf8
+      writeChar
 
       -- * Hexadecimal encoding using UTF-8 encoded characters
     , Base16Utf8Writable(..)
@@ -29,9 +29,9 @@ import System.IO.Write.Word
 
 -- | Write a UTF-8 encoded Unicode character to a buffer.
 --
-{-# INLINE writeCharUtf8 #-}
-writeCharUtf8 :: Write Char
-writeCharUtf8 = write 4 (encodeCharUtf8 f1 f2 f3 f4)
+{-# INLINE writeChar #-}
+writeChar :: Write Char
+writeChar = write 4 (encodeCharUtf8 f1 f2 f3 f4)
   where
     f1 x1          = pokeN 1 $ \op -> do pokeByteOff op 0 x1
 
