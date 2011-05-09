@@ -142,7 +142,7 @@ word8Base16 table =
 {-# INLINE word16Base16 #-}
 word16Base16 :: EncodingTable -> Write Word16
 word16Base16 table = 
-    write2 (word8Base16 table) (word8Base16 table) #.# 
+    write2 (word8Base16 table) (word8Base16 table) #.
            (\x -> let {-# INLINE byte #-}
                       byte n = fromIntegral $ x `shiftR` (n * 8) in
                   (byte 1, byte 0) 
@@ -152,7 +152,7 @@ word16Base16 table =
 word32Base16 :: EncodingTable -> Write Word32
 word32Base16 table = 
     write4 (word8Base16 table) (word8Base16 table) 
-           (word8Base16 table) (word8Base16 table) #.# 
+           (word8Base16 table) (word8Base16 table) #.
            (\x -> let {-# INLINE byte #-}
                       byte n = fromIntegral $ x `shiftR` (n * 8) in
                   (byte 3, byte 2, byte 1, byte 0) 
@@ -164,7 +164,7 @@ word64Base16 table =
     write8 (word8Base16 table) (word8Base16 table) 
            (word8Base16 table) (word8Base16 table)
            (word8Base16 table) (word8Base16 table)
-           (word8Base16 table) (word8Base16 table) #.# 
+           (word8Base16 table) (word8Base16 table) #.
            (\x -> let {-# INLINE byte #-}
                       byte n = fromIntegral $ x `shiftR` (n * 8) in
                   ( byte 7, byte 6, byte 5, byte 4

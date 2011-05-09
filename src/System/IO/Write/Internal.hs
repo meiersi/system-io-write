@@ -60,7 +60,7 @@ module System.IO.Write.Internal (
   , comapWrite
   , fixWrite
   , (#)
-  , (#.#)
+  , (#.)
   , append 
   , (#>)
   , prepend 
@@ -113,7 +113,7 @@ data Write a = Write {-# UNPACK #-} !Int (a -> Poke)
 infixr 5 #>
 infixl 4 <#
 infix  1 # 
-infixl 4 #.#
+infixl 4 #.
 
 
 -- | @pokeN size io@ creates a write that denotes the writing of @size@ bytes
@@ -130,8 +130,8 @@ pokeIO = Poke
 comapWrite :: (b -> a) -> Write a -> Write b
 comapWrite g (Write b f) = Write b (f . g)
 
-(#.#) :: Write a -> (b -> a) -> Write b
-(#.#) = flip comapWrite
+(#.) :: Write a -> (b -> a) -> Write b
+(#.) = flip comapWrite
 
 fixWrite :: Write a -> a -> FixedWrite
 fixWrite (Write b f) x = FixedWrite b (f x)
