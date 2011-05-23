@@ -12,12 +12,10 @@
 module System.IO.Write.Char.Utf8
     ( 
       -- * UTF-8 encoded characters
-      writeChar
+      char
 
       -- * Hexadecimal encoding using UTF-8 encoded characters
-    , Base16Utf8Writable(..)
-    , hex
-    , hexNoLead
+    , HexWritable(..)
     ) where
 
 import Foreign
@@ -29,9 +27,9 @@ import System.IO.Write.Word
 
 -- | Write a UTF-8 encoded Unicode character to a buffer.
 --
-{-# INLINE writeChar #-}
-writeChar :: Write Char
-writeChar = write 4 (encodeCharUtf8 f1 f2 f3 f4)
+{-# INLINE char #-}
+char :: Write Char
+char = write 4 (encodeCharUtf8 f1 f2 f3 f4)
   where
     f1 x1          = pokeN 1 $ \op -> do pokeByteOff op 0 x1
 
@@ -82,108 +80,142 @@ encodeCharUtf8 f1 f2 f3 f4 c = case ord c of
 -- Hexadecimal Encoding
 ------------------------------------------------------------------------------
 
-class Base16Utf8Writable a where
-    base16Lower       :: Write a
-    base16Upper       :: Write a
-    base16UpperNoLead :: Write a
-    base16LowerNoLead :: Write a
+class HexWritable a where
+    hexLower       :: Write a
+    hexUpper       :: Write a
+    hexUpperNoLead :: Write a
+    hexLowerNoLead :: Write a
 
-hex :: Base16Utf8Writable a => Write a
-hex = base16Lower
+instance HexWritable Word8 where
+    {-# INLINE hexLower #-}
+    {-# INLINE hexUpper #-}
+    {-# INLINE hexLowerNoLead #-}
+    {-# INLINE hexUpperNoLead #-}
+    hexLower       = word8Hex lowerTable
+    hexUpper       = word8Hex upperTable
+    hexLowerNoLead = word8HexNoLead lowerTable
+    hexUpperNoLead = word8HexNoLead upperTable
 
-hexNoLead :: Base16Utf8Writable a => Write a
-hexNoLead = base16LowerNoLead
+instance HexWritable Word16 where
+    {-# INLINE hexLower #-}
+    {-# INLINE hexUpper #-}
+    {-# INLINE hexLowerNoLead #-}
+    {-# INLINE hexUpperNoLead #-}
+    hexLower       = word16Hex lowerTable
+    hexUpper       = word16Hex upperTable
+    hexLowerNoLead = hexNoLead lowerTable
+    hexUpperNoLead = hexNoLead upperTable
 
-instance Base16Utf8Writable Word8 where
-    {-# INLINE base16Lower #-}
-    {-# INLINE base16Upper #-}
-    {-# INLINE base16LowerNoLead #-}
-    {-# INLINE base16UpperNoLead #-}
-    base16Lower       = word8Base16 lowerTable
-    base16Upper       = word8Base16 upperTable
-    base16LowerNoLead = word8Base16NoLead lowerTable
-    base16UpperNoLead = word8Base16NoLead upperTable
+instance HexWritable Word32 where
+    {-# INLINE hexLower #-}
+    {-# INLINE hexUpper #-}
+    {-# INLINE hexLowerNoLead #-}
+    {-# INLINE hexUpperNoLead #-}
+    hexLower       = word32Hex lowerTable
+    hexUpper       = word32Hex upperTable
+    hexLowerNoLead = hexNoLead lowerTable
+    hexUpperNoLead = hexNoLead upperTable
 
-instance Base16Utf8Writable Word16 where
-    {-# INLINE base16Lower #-}
-    {-# INLINE base16Upper #-}
-    {-# INLINE base16LowerNoLead #-}
-    {-# INLINE base16UpperNoLead #-}
-    base16Lower       = word16Base16 lowerTable
-    base16Upper       = word16Base16 upperTable
-    base16LowerNoLead = base16NoLead lowerTable
-    base16UpperNoLead = base16NoLead upperTable
+instance HexWritable Word64 where
+    {-# INLINE hexLower #-}
+    {-# INLINE hexUpper #-}
+    {-# INLINE hexLowerNoLead #-}
+    {-# INLINE hexUpperNoLead #-}
+    hexLower       = word64Hex lowerTable
+    hexUpper       = word64Hex upperTable
+    hexLowerNoLead = hexNoLead lowerTable
+    hexUpperNoLead = hexNoLead upperTable
 
-instance Base16Utf8Writable Word32 where
-    {-# INLINE base16Lower #-}
-    {-# INLINE base16Upper #-}
-    {-# INLINE base16LowerNoLead #-}
-    {-# INLINE base16UpperNoLead #-}
-    base16Lower       = word32Base16 lowerTable
-    base16Upper       = word32Base16 upperTable
-    base16LowerNoLead = base16NoLead lowerTable
-    base16UpperNoLead = base16NoLead upperTable
+instance HexWritable Int8 where
+    {-# INLINE hexLower #-}
+    {-# INLINE hexUpper #-}
+    {-# INLINE hexLowerNoLead #-}
+    {-# INLINE hexUpperNoLead #-}
+    hexLower       = word8Hex lowerTable #. fromIntegral
+    hexUpper       = word8Hex upperTable #. fromIntegral
+    hexLowerNoLead = word8HexNoLead lowerTable #. fromIntegral
+    hexUpperNoLead = word8HexNoLead upperTable #. fromIntegral
 
-instance Base16Utf8Writable Word64 where
-    {-# INLINE base16Lower #-}
-    {-# INLINE base16Upper #-}
-    {-# INLINE base16LowerNoLead #-}
-    {-# INLINE base16UpperNoLead #-}
-    base16Lower       = word64Base16 lowerTable
-    base16Upper       = word64Base16 upperTable
-    base16LowerNoLead = base16NoLead lowerTable
-    base16UpperNoLead = base16NoLead upperTable
+instance HexWritable Int16 where
+    {-# INLINE hexLower #-}
+    {-# INLINE hexUpper #-}
+    {-# INLINE hexLowerNoLead #-}
+    {-# INLINE hexUpperNoLead #-}
+    hexLower       = word16Hex lowerTable #. fromIntegral
+    hexUpper       = word16Hex upperTable #. fromIntegral
+    hexLowerNoLead = hexNoLead lowerTable 
+    hexUpperNoLead = hexNoLead upperTable
 
-{-# INLINE word8Base16 #-}
-word8Base16 :: EncodingTable -> Write Word8
-word8Base16 table = 
+instance HexWritable Int32 where
+    {-# INLINE hexLower #-}
+    {-# INLINE hexUpper #-}
+    {-# INLINE hexLowerNoLead #-}
+    {-# INLINE hexUpperNoLead #-}
+    hexLower       = word32Hex lowerTable #. fromIntegral
+    hexUpper       = word32Hex upperTable #. fromIntegral
+    hexLowerNoLead = hexNoLead lowerTable
+    hexUpperNoLead = hexNoLead upperTable
+
+instance HexWritable Int64 where
+    {-# INLINE hexLower #-}
+    {-# INLINE hexUpper #-}
+    {-# INLINE hexLowerNoLead #-}
+    {-# INLINE hexUpperNoLead #-}
+    hexLower       = word64Hex lowerTable #. fromIntegral
+    hexUpper       = word64Hex upperTable #. fromIntegral
+    hexLowerNoLead = hexNoLead lowerTable
+    hexUpperNoLead = hexNoLead upperTable
+
+{-# INLINE word8Hex #-}
+word8Hex :: EncodingTable -> Write Word8
+word8Hex table = 
     exactWrite 2 $ \x op -> poke (castPtr op) =<< encode8_as_16h table x
 
-{-# INLINE word16Base16 #-}
-word16Base16 :: EncodingTable -> Write Word16
-word16Base16 table = 
-    write2 (word8Base16 table) (word8Base16 table) #.
+{-# INLINE word16Hex #-}
+word16Hex :: EncodingTable -> Write Word16
+word16Hex table = 
+    write2 (word8Hex table) (word8Hex table) #.
            (\x -> let {-# INLINE byte #-}
                       byte n = fromIntegral $ x `shiftR` (n * 8) in
                   (byte 1, byte 0) 
             )
 
-{-# INLINE word32Base16 #-}
-word32Base16 :: EncodingTable -> Write Word32
-word32Base16 table = 
-    write4 (word8Base16 table) (word8Base16 table) 
-           (word8Base16 table) (word8Base16 table) #.
+{-# INLINE word32Hex #-}
+word32Hex :: EncodingTable -> Write Word32
+word32Hex table = 
+    write4 (word8Hex table) (word8Hex table) 
+           (word8Hex table) (word8Hex table) #.
            (\x -> let {-# INLINE byte #-}
                       byte n = fromIntegral $ x `shiftR` (n * 8) in
                   (byte 3, byte 2, byte 1, byte 0) 
             )
 
-{-# INLINE word64Base16 #-}
-word64Base16 :: EncodingTable -> Write Word64
-word64Base16 table = 
-    write8 (word8Base16 table) (word8Base16 table) 
-           (word8Base16 table) (word8Base16 table)
-           (word8Base16 table) (word8Base16 table)
-           (word8Base16 table) (word8Base16 table) #.
+{-# INLINE word64Hex #-}
+word64Hex :: EncodingTable -> Write Word64
+word64Hex table = 
+    write8 (word8Hex table) (word8Hex table) 
+           (word8Hex table) (word8Hex table)
+           (word8Hex table) (word8Hex table)
+           (word8Hex table) (word8Hex table) #.
            (\x -> let {-# INLINE byte #-}
                       byte n = fromIntegral $ x `shiftR` (n * 8) in
                   ( byte 7, byte 6, byte 5, byte 4
                   , byte 3, byte 2, byte 1, byte 0 ) 
             )
 
-{-# INLINE word8Base16NoLead #-}
-word8Base16NoLead :: EncodingTable -> Write Word8
-word8Base16NoLead table =
-    writeIf (<16) word4Base16 (word8Base16 table)
+{-# INLINE word8HexNoLead #-}
+word8HexNoLead :: EncodingTable -> Write Word8
+word8HexNoLead table =
+    writeIf (<16) word4Hex (word8Hex table)
   where
-    {-# INLINE word4Base16 #-}
-    word4Base16 =
+    {-# INLINE word4Hex #-}
+    word4Hex =
         exactWrite 1 $ \x op -> poke op =<< encode4_as_8 table x
 
-{-# INLINE base16NoLead #-}
-base16NoLead :: forall a. (Storable a, Bits a, Integral a) 
+{-# INLINE hexNoLead #-}
+hexNoLead :: forall a. (Storable a, Bits a, Integral a) 
                      => EncodingTable -> Write a
-base16NoLead table =
+hexNoLead table =
     write (2 * maxBytes) (pokeIO . f)
   where
     maxBytes = (sizeOf (undefined :: a))
@@ -194,17 +226,17 @@ base16NoLead table =
             x  = fromIntegral $ x0 `shiftR` (n0 * 8)
         if x < 16
           then do poke op0 =<< encode4_as_8 table x
-                  runWrite (base16Bytes n0      ) x0 (op0 `plusPtr` 1)
-          else do runWrite (base16Bytes (n0 + 1)) x0 op0
+                  runWrite (hexBytes n0      ) x0 (op0 `plusPtr` 1)
+          else do runWrite (hexBytes (n0 + 1)) x0 op0
       where
         findNonZeroByte !n
           | (x0 `shiftR` (8 * n) .&. 0xff) == 0 = findNonZeroByte (n - 1)
           | otherwise                           = n
 
 
-    {-# INLINE base16Bytes #-}
-    base16Bytes :: (Bits a, Integral a) => Int -> Write a
-    base16Bytes n0 =
+    {-# INLINE hexBytes #-}
+    hexBytes :: (Bits a, Integral a) => Int -> Write a
+    hexBytes n0 =
         write (2 * max 0 n0) (pokeIO . g)
       where
         g !x0 !op0 = 
