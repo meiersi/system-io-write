@@ -17,23 +17,23 @@ module System.IO.Write.Int
     ( 
     -- * Writing integers to a buffer
 
-      writeInt8
+      int8
 
     -- ** Big-endian writes
-    , writeInt16be           -- :: Write Int16
-    , writeInt32be           -- :: Write Int32
-    , writeInt64be           -- :: Write Int64
+    , int16BE           -- :: Write Int16
+    , int32BE           -- :: Write Int32
+    , int64BE           -- :: Write Int64
 
     -- ** Little-endian writes
-    , writeInt16le           -- :: Write Int16
-    , writeInt32le           -- :: Write Int32
-    , writeInt64le           -- :: Write Int64
+    , int16LE           -- :: Write Int16
+    , int32LE           -- :: Write Int32
+    , int64LE           -- :: Write Int64
 
     -- ** Host-endian writes
-    , writeInthost           -- :: Write Int
-    , writeInt16host         -- :: Write Int16
-    , writeInt32host         -- :: Write Int32
-    , writeInt64host         -- :: Write Int64
+    , intHost           -- :: Write Int
+    , int16Host         -- :: Write Int16
+    , int32Host         -- :: Write Int32
+    , int64Host         -- :: Write Int64
 
     ) where
 
@@ -54,39 +54,39 @@ import Foreign
 
 -- | Write a single signed byte.
 --
-{-# INLINE writeInt8 #-}
-writeInt8 :: Write Int8
-writeInt8 = comapWrite fromIntegral writeWord8
+{-# INLINE int8 #-}
+int8 :: Write Int8
+int8 = comapWrite fromIntegral word8
 
 -- | Write an 'Int16' in big endian format.
-{-# INLINE writeInt16be #-}
-writeInt16be :: Write Int16
-writeInt16be = comapWrite fromIntegral writeWord16be
+{-# INLINE int16BE #-}
+int16BE :: Write Int16
+int16BE = comapWrite fromIntegral word16BE
 
 -- | Write an 'Int16' in little endian format.
-{-# INLINE writeInt16le #-}
-writeInt16le :: Write Int16
-writeInt16le = comapWrite fromIntegral writeWord16le
+{-# INLINE int16LE #-}
+int16LE :: Write Int16
+int16LE = comapWrite fromIntegral word16LE
 
 -- | Write an 'Int32' in big endian format.
-{-# INLINE writeInt32be #-}
-writeInt32be :: Write Int32
-writeInt32be = comapWrite fromIntegral writeWord32be
+{-# INLINE int32BE #-}
+int32BE :: Write Int32
+int32BE = comapWrite fromIntegral word32BE
 
 -- | Write an 'Int32' in little endian format.
-{-# INLINE writeInt32le #-}
-writeInt32le :: Write Int32
-writeInt32le = comapWrite fromIntegral writeWord32le
+{-# INLINE int32LE #-}
+int32LE :: Write Int32
+int32LE = comapWrite fromIntegral word32LE
 
 -- | Write an 'Int64' in big endian format.
-{-# INLINE writeInt64be #-}
-writeInt64be :: Write Int64
-writeInt64be = comapWrite fromIntegral writeWord64be
+{-# INLINE int64BE #-}
+int64BE :: Write Int64
+int64BE = comapWrite fromIntegral word64BE
 
 -- | Write an 'Int64' in little endian format.
-{-# INLINE writeInt64le #-}
-writeInt64le :: Write Int64
-writeInt64le = comapWrite fromIntegral writeWord64le
+{-# INLINE int64LE #-}
+int64LE :: Write Int64
+int64LE = comapWrite fromIntegral word64LE
 
 
 ------------------------------------------------------------------------
@@ -98,23 +98,23 @@ writeInt64le = comapWrite fromIntegral writeWord64le
 -- are not portable to different endian or integer sized machines, without
 -- conversion.
 --
-{-# INLINE writeInthost #-}
-writeInthost :: Write Int
-writeInthost = writeStorable
+{-# INLINE intHost #-}
+intHost :: Write Int
+intHost = writeStorable
 
 -- | Write an 'Int16' in native host order and host endianness.
-{-# INLINE writeInt16host #-}
-writeInt16host :: Write Int16
-writeInt16host = writeStorable
+{-# INLINE int16Host #-}
+int16Host :: Write Int16
+int16Host = writeStorable
 
 -- | Write an 'Int32' in native host order and host endianness.
-{-# INLINE writeInt32host #-}
-writeInt32host :: Write Int32
-writeInt32host = writeStorable
+{-# INLINE int32Host #-}
+int32Host :: Write Int32
+int32Host = writeStorable
 
 -- | Write an 'Int64' in native host order and host endianness.
-{-# INLINE writeInt64host #-}
-writeInt64host :: Write Int64
-writeInt64host = writeStorable
+{-# INLINE int64Host #-}
+int64Host :: Write Int64
+int64Host = writeStorable
 
 

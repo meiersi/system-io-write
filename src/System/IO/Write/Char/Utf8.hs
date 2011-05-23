@@ -188,7 +188,7 @@ base16NoLead table =
   where
     maxBytes = (sizeOf (undefined :: a))
 
-    f 0  op0 = do runWrite writeWord8 (fromIntegral $ fromEnum '0') op0
+    f 0  op0 = do runWrite word8 (fromIntegral $ fromEnum '0') op0
     f x0 op0 = do
         let n0 = findNonZeroByte (maxBytes - 1)
             x  = fromIntegral $ x0 `shiftR` (n0 * 8)

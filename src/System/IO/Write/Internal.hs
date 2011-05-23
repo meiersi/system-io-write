@@ -368,7 +368,7 @@ getBound' msg write =
 -- example, @writeAscii7@ defined as follows
 --
 -- > writeAscii7 :: Word8 -> Write
--- > writeAscii7 w | w < 128   = writeWord8
+-- > writeAscii7 w | w < 128   = word8
 -- >               | otherwise = mempty
 --
 -- is no @StaticWrite Word8@. Written as it is, the resulting bound is
@@ -380,7 +380,7 @@ getBound' msg write =
 -- function such that it is a statically bounded write.
 --
 -- > writeAscii7' :: StaticWrite Word8
--- > writeAscii7' = writeIf (<128) writeWord8 (const mempty)
+-- > writeAscii7' = writeIf (<128) word8 (const mempty)
 type StaticWrite a = a -> Write
 
 -- | @staticBound w@ is the maximal number of bytes written by @w x@ for any
