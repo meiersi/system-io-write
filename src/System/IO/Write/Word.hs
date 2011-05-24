@@ -47,7 +47,7 @@ module System.IO.Write.Word
     , word64LE           -- :: Write Word64
 
     -- ** Host-endian writes
-    , wordhost           -- :: Write Word
+    , wordHost           -- :: Write Word
     , word16Host         -- :: Write Word16
     , word32Host         -- :: Write Word32
     , word64Host         -- :: Write Word64
@@ -189,9 +189,9 @@ word64LE = exactWrite 8 $ \w p -> do
 -- are not portable to different endian or word sized machines, without
 -- conversion.
 --
-{-# INLINE wordhost #-}
-wordhost :: Write Word
-wordhost = writeStorable
+{-# INLINE wordHost #-}
+wordHost :: Write Word
+wordHost = writeStorable
 
 -- | Write a 'Word16' in native host order and host endianness.
 {-# INLINE word16Host #-}
