@@ -18,20 +18,20 @@ module System.IO.Write.Int
       int8
 
     -- * Big-endian writes
-    , int16BE           -- :: Write Int16
-    , int32BE           -- :: Write Int32
-    , int64BE           -- :: Write Int64
+    , int16BE
+    , int32BE
+    , int64BE
 
     -- * Little-endian writes
-    , int16LE           -- :: Write Int16
-    , int32LE           -- :: Write Int32
-    , int64LE           -- :: Write Int64
+    , int16LE
+    , int32LE
+    , int64LE
 
     -- * Host-endian writes
-    , intHost           -- :: Write Int
-    , int16Host         -- :: Write Int16
-    , int32Host         -- :: Write Int32
-    , int64Host         -- :: Write Int64
+    , intHost  
+    , int16Host
+    , int32Host
+    , int64Host
 
     ) where
 
