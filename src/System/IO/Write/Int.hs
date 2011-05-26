@@ -8,28 +8,26 @@
 -- Stability   : experimental
 -- Portability : tested on GHC only
 --
--- 'Write's and 'Builder's for serializing integers.
---
--- See "Blaze.ByteString.Builder.Word" for information about how to best write several
--- integers at once.
+-- 'Write's for encoding bounded-size signed integers using big-endian,
+-- little-endian, and host-endian encodings.
 --
 module System.IO.Write.Int
     ( 
-    -- * Writing integers to a buffer
 
+    -- * Endianness and order independent writes
       int8
 
-    -- ** Big-endian writes
+    -- * Big-endian writes
     , int16BE           -- :: Write Int16
     , int32BE           -- :: Write Int32
     , int64BE           -- :: Write Int64
 
-    -- ** Little-endian writes
+    -- * Little-endian writes
     , int16LE           -- :: Write Int16
     , int32LE           -- :: Write Int32
     , int64LE           -- :: Write Int64
 
-    -- ** Host-endian writes
+    -- * Host-endian writes
     , intHost           -- :: Write Int
     , int16Host         -- :: Write Int16
     , int32Host         -- :: Write Int32

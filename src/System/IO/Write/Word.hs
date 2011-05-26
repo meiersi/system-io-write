@@ -11,46 +11,33 @@
 -- Stability   : experimental
 -- Portability : tested on GHC only
 --
--- 'Write's and 'Builder's for serializing words.
+-- 'Write's for encoding bounded-size unsigned integers using big-endian,
+-- little-endian, and host-endian encodings.
 --
--- Note that for serializing a three tuple @(x,y,z)@ of bytes (or other word
--- values) you should use the expression 
---
--- > fromWrite $ word8 x `mappend` word8 y `mappend` word z
---
--- instead of
---
--- > fromWord8 x `mappend` fromWord8 y `mappend` fromWord z
---
--- The first expression will result in a single atomic write of three bytes,
--- while the second expression will check for each byte, if there is free space
--- left in the output buffer. Coalescing these checks can improve performance
--- quite a bit, as long as you use it sensibly.
 --
 #if defined(__GLASGOW_HASKELL__) && !defined(__HADDOCK__)
 #include "MachDeps.h"
 #endif
 module System.IO.Write.Word
     ( 
-    -- * Writing words to a buffer
-
+    -- * Endianness and order independent writes
       word8
 
-    -- ** Big-endian writes
-    , word16BE           -- :: Write Word16
-    , word32BE           -- :: Write Word32
-    , word64BE           -- :: Write Word64
+    -- * Big-endian writes
+    , word16BE 
+    , word32BE 
+    , word64BE 
 
-    -- ** Little-endian writes
-    , word16LE           -- :: Write Word16
-    , word32LE           -- :: Write Word32
-    , word64LE           -- :: Write Word64
+    -- * Little-endian writes
+    , word16LE
+    , word32LE
+    , word64LE
 
-    -- ** Host-endian writes
-    , wordHost           -- :: Write Word
-    , word16Host         -- :: Write Word16
-    , word32Host         -- :: Write Word32
-    , word64Host         -- :: Write Word64
+    -- * Host-endian writes
+    , wordHost  
+    , word16Host
+    , word32Host
+    , word64Host
 
     ) where
 
@@ -69,7 +56,7 @@ import Foreign
 ------------------------------------------------------------------------------
 
 
--- | Write a single byte.
+-- | Write a single unsigned byte.
 --
 {-# INLINE word8 #-}
 word8 :: Write Word8

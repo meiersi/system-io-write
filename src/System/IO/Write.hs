@@ -58,11 +58,9 @@ module System.IO.Write (
   , append
   , (<#)
 
-  -- * Writing @Word@s
-  , module System.IO.Write.Word
-
-  -- * Writing @Int@s
+  -- * Writing fixed-width signed and unsigned integers
   , module System.IO.Write.Int
+  , module System.IO.Write.Word
 
   ) where
 
