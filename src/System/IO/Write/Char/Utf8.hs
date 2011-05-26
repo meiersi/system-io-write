@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables, BangPatterns #-}
 -- |
 -- Copyright   : (c) 2010 Jasper Van der Jeugt & Simon Meier
 -- License     : BSD3-style (see LICENSE)
@@ -11,25 +10,27 @@
 --
 module System.IO.Write.Char.Utf8
     ( 
-      -- * UTF-8 encoded characters
-      char
+      -- * UTF-8 encoding of single characters
+      utf8
 
       -- * Hexadecimal encoding using UTF-8 encoded characters
-    , HexWritable(..)
+    , utf8HexLower
+    , utf8HexUpper
+    , utf8HexLowerNoLead
+    , utf8HexUpperNoLead
     ) where
 
 import Foreign
 import Data.Char (ord)
 
 import System.IO.Write.Internal
-import System.IO.Write.Internal.Base16
-import System.IO.Write.Word
+import System.IO.Write.Char.Ascii
 
--- | Write a UTF-8 encoded Unicode character to a buffer.
+-- | Write a 'Char' using the UTF-8 encoding.
 --
-{-# INLINE char #-}
-char :: Write Char
-char = write 4 (encodeCharUtf8 f1 f2 f3 f4)
+{-# INLINE utf8 #-}
+utf8 :: Write Char
+utf8 = write 4 (encodeCharUtf8 f1 f2 f3 f4)
   where
     f1 x1          = pokeN 1 $ \op -> do pokeByteOff op 0 x1
 
@@ -80,173 +81,35 @@ encodeCharUtf8 f1 f2 f3 f4 c = case ord c of
 -- Hexadecimal Encoding
 ------------------------------------------------------------------------------
 
-class HexWritable a where
-    hexLower       :: Write a
-    hexUpper       :: Write a
-    hexUpperNoLead :: Write a
-    hexLowerNoLead :: Write a
+-- | Fixed-width hexadecimal encoding with lower-case characters encoded using
+-- the UTF-8 encoding.
+--
+-- Note that we exploit that the UTF-8 encoding coincides with the ASCII
+-- encoding on codepoints below 128. This is the origin of the
+-- 'AsciiHexWritable' class constraint.
+--
+{-# INLINE utf8HexLower #-}
+utf8HexLower :: AsciiHexWritable a => Write a
+utf8HexLower = asciiHexLower
 
-instance HexWritable Word8 where
-    {-# INLINE hexLower #-}
-    {-# INLINE hexUpper #-}
-    {-# INLINE hexLowerNoLead #-}
-    {-# INLINE hexUpperNoLead #-}
-    hexLower       = word8Hex lowerTable
-    hexUpper       = word8Hex upperTable
-    hexLowerNoLead = word8HexNoLead lowerTable
-    hexUpperNoLead = word8HexNoLead upperTable
+-- | Fixed-width hexadecimal encoding with upper-case characters encoded using
+-- the UTF-8 encoding.
+--
+{-# INLINE utf8HexUpper #-}
+utf8HexUpper :: AsciiHexWritable a => Write a
+utf8HexUpper = asciiHexUpper
 
-instance HexWritable Word16 where
-    {-# INLINE hexLower #-}
-    {-# INLINE hexUpper #-}
-    {-# INLINE hexLowerNoLead #-}
-    {-# INLINE hexUpperNoLead #-}
-    hexLower       = word16Hex lowerTable
-    hexUpper       = word16Hex upperTable
-    hexLowerNoLead = hexNoLead lowerTable
-    hexUpperNoLead = hexNoLead upperTable
+-- | Hexadecimal encoding with no leading zeros and lower-case characters
+-- encoded using the UTF-8 encoding.
+--
+{-# INLINE utf8HexLowerNoLead #-}
+utf8HexLowerNoLead :: AsciiHexWritable a => Write a
+utf8HexLowerNoLead = asciiHexLowerNoLead
+                  
+-- | Hexadecimal encoding with  no leading zeros and upper-case characters
+-- encoded using the UTF-8 encoding.
+--
+{-# INLINE utf8HexUpperNoLead #-}
+utf8HexUpperNoLead :: AsciiHexWritable a => Write a
+utf8HexUpperNoLead = asciiHexUpperNoLead
 
-instance HexWritable Word32 where
-    {-# INLINE hexLower #-}
-    {-# INLINE hexUpper #-}
-    {-# INLINE hexLowerNoLead #-}
-    {-# INLINE hexUpperNoLead #-}
-    hexLower       = word32Hex lowerTable
-    hexUpper       = word32Hex upperTable
-    hexLowerNoLead = hexNoLead lowerTable
-    hexUpperNoLead = hexNoLead upperTable
-
-instance HexWritable Word64 where
-    {-# INLINE hexLower #-}
-    {-# INLINE hexUpper #-}
-    {-# INLINE hexLowerNoLead #-}
-    {-# INLINE hexUpperNoLead #-}
-    hexLower       = word64Hex lowerTable
-    hexUpper       = word64Hex upperTable
-    hexLowerNoLead = hexNoLead lowerTable
-    hexUpperNoLead = hexNoLead upperTable
-
-instance HexWritable Int8 where
-    {-# INLINE hexLower #-}
-    {-# INLINE hexUpper #-}
-    {-# INLINE hexLowerNoLead #-}
-    {-# INLINE hexUpperNoLead #-}
-    hexLower       = word8Hex lowerTable #. fromIntegral
-    hexUpper       = word8Hex upperTable #. fromIntegral
-    hexLowerNoLead = word8HexNoLead lowerTable #. fromIntegral
-    hexUpperNoLead = word8HexNoLead upperTable #. fromIntegral
-
-instance HexWritable Int16 where
-    {-# INLINE hexLower #-}
-    {-# INLINE hexUpper #-}
-    {-# INLINE hexLowerNoLead #-}
-    {-# INLINE hexUpperNoLead #-}
-    hexLower       = word16Hex lowerTable #. fromIntegral
-    hexUpper       = word16Hex upperTable #. fromIntegral
-    hexLowerNoLead = hexNoLead lowerTable 
-    hexUpperNoLead = hexNoLead upperTable
-
-instance HexWritable Int32 where
-    {-# INLINE hexLower #-}
-    {-# INLINE hexUpper #-}
-    {-# INLINE hexLowerNoLead #-}
-    {-# INLINE hexUpperNoLead #-}
-    hexLower       = word32Hex lowerTable #. fromIntegral
-    hexUpper       = word32Hex upperTable #. fromIntegral
-    hexLowerNoLead = hexNoLead lowerTable
-    hexUpperNoLead = hexNoLead upperTable
-
-instance HexWritable Int64 where
-    {-# INLINE hexLower #-}
-    {-# INLINE hexUpper #-}
-    {-# INLINE hexLowerNoLead #-}
-    {-# INLINE hexUpperNoLead #-}
-    hexLower       = word64Hex lowerTable #. fromIntegral
-    hexUpper       = word64Hex upperTable #. fromIntegral
-    hexLowerNoLead = hexNoLead lowerTable
-    hexUpperNoLead = hexNoLead upperTable
-
-{-# INLINE word8Hex #-}
-word8Hex :: EncodingTable -> Write Word8
-word8Hex table = 
-    exactWrite 2 $ \x op -> poke (castPtr op) =<< encode8_as_16h table x
-
-{-# INLINE word16Hex #-}
-word16Hex :: EncodingTable -> Write Word16
-word16Hex table = 
-    write2 (word8Hex table) (word8Hex table) #.
-           (\x -> let {-# INLINE byte #-}
-                      byte n = fromIntegral $ x `shiftR` (n * 8) in
-                  (byte 1, byte 0) 
-            )
-
-{-# INLINE word32Hex #-}
-word32Hex :: EncodingTable -> Write Word32
-word32Hex table = 
-    write4 (word8Hex table) (word8Hex table) 
-           (word8Hex table) (word8Hex table) #.
-           (\x -> let {-# INLINE byte #-}
-                      byte n = fromIntegral $ x `shiftR` (n * 8) in
-                  (byte 3, byte 2, byte 1, byte 0) 
-            )
-
-{-# INLINE word64Hex #-}
-word64Hex :: EncodingTable -> Write Word64
-word64Hex table = 
-    write8 (word8Hex table) (word8Hex table) 
-           (word8Hex table) (word8Hex table)
-           (word8Hex table) (word8Hex table)
-           (word8Hex table) (word8Hex table) #.
-           (\x -> let {-# INLINE byte #-}
-                      byte n = fromIntegral $ x `shiftR` (n * 8) in
-                  ( byte 7, byte 6, byte 5, byte 4
-                  , byte 3, byte 2, byte 1, byte 0 ) 
-            )
-
-{-# INLINE word8HexNoLead #-}
-word8HexNoLead :: EncodingTable -> Write Word8
-word8HexNoLead table =
-    writeIf (<16) word4Hex (word8Hex table)
-  where
-    {-# INLINE word4Hex #-}
-    word4Hex =
-        exactWrite 1 $ \x op -> poke op =<< encode4_as_8 table x
-
-{-# INLINE hexNoLead #-}
-hexNoLead :: forall a. (Storable a, Bits a, Integral a) 
-                     => EncodingTable -> Write a
-hexNoLead table =
-    write (2 * maxBytes) (pokeIO . f)
-  where
-    maxBytes = (sizeOf (undefined :: a))
-
-    f 0  op0 = do runWrite word8 (fromIntegral $ fromEnum '0') op0
-    f x0 op0 = do
-        let n0 = findNonZeroByte (maxBytes - 1)
-            x  = fromIntegral $ x0 `shiftR` (n0 * 8)
-        if x < 16
-          then do poke op0 =<< encode4_as_8 table x
-                  runWrite (hexBytes n0      ) x0 (op0 `plusPtr` 1)
-          else do runWrite (hexBytes (n0 + 1)) x0 op0
-      where
-        findNonZeroByte !n
-          | (x0 `shiftR` (8 * n) .&. 0xff) == 0 = findNonZeroByte (n - 1)
-          | otherwise                           = n
-
-
-    {-# INLINE hexBytes #-}
-    hexBytes :: (Bits a, Integral a) => Int -> Write a
-    hexBytes n0 =
-        write (2 * max 0 n0) (pokeIO . g)
-      where
-        g !x0 !op0 = 
-            loop (n0 - 1) op0
-          where
-            loop n op
-              | n < 0     = do return op
-              | otherwise = do
-                  x <- encode8_as_16h table (fromIntegral $ x0 `shiftR` (n * 8))
-                  poke (castPtr op) x
-                  loop (n - 1) (op `plusPtr` 2)
-
-      
