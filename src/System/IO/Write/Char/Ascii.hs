@@ -82,8 +82,7 @@ asciiDrop = writeIf (< '\128') unsafeAscii writeNothing
 -- Hexadecimal Encoding
 ------------------------------------------------------------------------------
 
--- | Values that support a hexadecimal encoding whose characters are
--- represented using the ASCII encoding.
+-- | Values that support a hexadecimal encoding with ASCII encoded characters.
 class AsciiHexWritable a where
     -- | Fixed-width hexadecimal encoding with lower-case characters.
     asciiHexLower       :: Write a
@@ -224,7 +223,7 @@ word8HexNoLead table =
 asciiHexNoLead :: forall a. (Storable a, Bits a, Integral a) 
                      => EncodingTable -> Write a
 asciiHexNoLead table =
-    write (2 * maxBytes) (pokeIO . f)
+    boundedWrite (2 * maxBytes) (pokeIO . f)
   where
     maxBytes = (sizeOf (undefined :: a))
 
@@ -245,7 +244,7 @@ asciiHexNoLead table =
     {-# INLINE asciiHexBytes #-}
     asciiHexBytes :: (Bits a, Integral a) => Int -> Write a
     asciiHexBytes n0 =
-        write (2 * max 0 n0) (pokeIO . g)
+        boundedWrite (2 * max 0 n0) (pokeIO . g)
       where
         g !x0 !op0 = 
             loop (n0 - 1) op0

@@ -41,6 +41,7 @@ module System.IO.Write (
   -- * The @Write@ type
     Write
   , comapWrite
+  , (#.)
   , writeNothing
   , writeIf
   , writeMaybe
@@ -48,11 +49,6 @@ module System.IO.Write (
   , write2
   , write3
   , write4
-
-  -- * @FixedWrite@s
-  , FixedWrite
-  , fixWrite
-  , (#)
   , prepend
   , (#>)
   , append

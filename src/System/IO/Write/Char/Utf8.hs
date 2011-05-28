@@ -30,7 +30,7 @@ import System.IO.Write.Char.Ascii
 --
 {-# INLINE utf8 #-}
 utf8 :: Write Char
-utf8 = write 4 (encodeCharUtf8 f1 f2 f3 f4)
+utf8 = boundedWrite 4 (encodeCharUtf8 f1 f2 f3 f4)
   where
     f1 x1          = pokeN 1 $ \op -> do pokeByteOff op 0 x1
 

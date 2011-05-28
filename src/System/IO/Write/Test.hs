@@ -93,7 +93,7 @@ testWriteWith (slackF, slackB) w x = unsafePerformIO $ do
     res2             <- execWrite (invert xs1)
     return $ check res1 res2
   where
-    bound = writeBound w
+    bound = getBound w
 
     invert = map complement
 
