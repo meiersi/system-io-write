@@ -3,18 +3,54 @@ Version:             0.1.0.0
 Synopsis:            Compile-time abstraction of writing of a bounded number of bytes to memory
 
 Description:         
-                     The main use of the provided /write abstraction/ is to
-                     share the implementation of encodings of Haskell values
-                     where the maximal number of bytes to be written per value
-                     is statically known.
+                     The main use of the /Write/ abstraction provided by this
+                     library is to share the implementation of encodings of
+                     Haskell values where the maximal number of bytes written
+                     is /independent/ of the value being encoded.
+                     This is a low-level library.
+                     In most cases you do not need to use Writes directly.
+                     Instead, you can just use the encodings provided by the
+                     bytestring builders of the 'bytestring' library. 
                      .
-                     This library only provides types and combinators for
-                     defining writes. A number of actual writes is provided by
-                     the @encoding-writes@ library. They are used together with
-                     the @Builder@ type from the @bytestring@ library to
-                     provide builders for a variety of encodings in the
-                     @encoding-builders@ library.
-                     
+                     Apart from types and combinators for defining Writes, the
+                     'system-io-write' library also provides Writes for
+                     standard encodings of standard Haskell types. 
+                     The reason for implementing these encodings as Writes is
+                     to provide a direct and very efficient translation of
+                     standard Haskell values to their encoding as a sequence of
+                     bytes in memory.
+                     .
+                     Currently, the library supports the 
+                     following encodings.
+                     .
+                       - Big-endian, little-endian, and host-endian encoding of 
+                         fixed-width integers.
+                     .
+                       - ASCII and UTF-8 encoding of characters.
+                     .
+                       - Hexadecimal encoding of fixed-width integers using ASCII
+                         or UTF-8 encoded characters.
+                     .
+                     Support for the following encodings is planned.
+                     .
+                       - UTF-16 and UTF-32 character encoding in both the
+                         little-endian as well as the big-endian variant.
+                     .
+                       - Decimal encoding of integers using the supported
+                         character encodings.
+                     .
+                       - Binary, decimal, and hexadecimal encodings of 'Float'
+                         and 'Double' values.
+                     .
+                     Note that using Writes is no guarantee for efficiency.
+                     They can easily be used in ways that result in bad
+                     performance.  The 'System.IO.Write.Bench' module helps you
+                     with benchmarking your Writes.  Moreover, if you implement
+                     a Write using the unsafe Write API, then all safety belts
+                     are off.  You are writing code that may lead to the next
+                     buffer overflow attack on a Haskell application.  The
+                     'System.IO.Write.Test' module supports you in getting some
+                     safety back by testing your Writes thoroughly.
 
 Author:              Simon Meier, Jasper Van der Jeugt
 Copyright:           2010, 2011 Simon Meier
