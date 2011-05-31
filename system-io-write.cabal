@@ -24,7 +24,8 @@ Description:
                      following encodings.
                      .
                        - Big-endian, little-endian, and host-endian encoding of 
-                         fixed-width integers.
+                         fixed-width integers, single-precision floats, and
+                         double-precision floats.
                      .
                        - ASCII and UTF-8 encoding of characters.
                      .
@@ -39,7 +40,7 @@ Description:
                        - Decimal encoding of integers using the supported
                          character encodings.
                      .
-                       - Binary, decimal, and hexadecimal encodings of 'Float'
+                       - Decimal, and hexadecimal encodings of 'Float'
                          and 'Double' values.
                      .
                      Note that using Writes is no guarantee for efficiency.
@@ -84,6 +85,7 @@ Library
   exposed-modules:   System.IO.Write
                      System.IO.Write.Int
                      System.IO.Write.Word
+                     System.IO.Write.Floating
                      System.IO.Write.Char.Utf8
                      System.IO.Write.Char.Ascii
                      System.IO.Write.Internal
