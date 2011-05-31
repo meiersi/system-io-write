@@ -18,7 +18,7 @@
 module System.IO.Write.Char.Ascii
     ( 
       -- * ASCII encoding of single characters
-      asciiError
+      ascii
     , asciiReplace 
     , asciiDrop
     , unsafeAscii
@@ -43,27 +43,26 @@ import System.IO.Write.Word
 unsafeAscii :: Write Char
 unsafeAscii = word8 #. fromIntegral #. ord
 
-
 -- | Write a 'Char' with a Unicode codepoint below 128 using the ASCII
 -- encoding. If the codepoint is greater or equal to 128, an error is thrown.
 --
-{-# INLINE asciiError #-}
-asciiError :: Write Char
-asciiError =
-    writeIf (< '\128')  unsafeAscii (writeNothing #. err)
+{-# INLINE ascii #-}
+ascii :: Write Char
+ascii =
+    writeIf (< '\128') unsafeAscii (writeNothing #. err)
   where
-    err c = error $ "asciiError: cannot encode `" ++ [c] ++ "' in ASCII"
+    err c = error $ "ascii: cannot encode `" ++ [c] ++ "' in ASCII"
 
 -- | Write a 'Char' with a Unicode codepoint below 128 using the ASCII
 -- encoding. If the codepoint is greater or equal to 128, the replacement
--- character is written. This character must have a codepoint below 128.
--- Otherwise an error is thrown.
+-- character is written. This character must have a codepoint below 128,
+-- as otherwise an error is thrown.
 --
 {-# INLINE asciiReplace #-}
 asciiReplace :: Char       -- ^ Replacement character for codepoints greater or equal to 128
              -> Write Char
 asciiReplace replacement = 
-    writeIf (< '\128') unsafeAscii (asciiError #. const replacement) 
+    writeIf (< '\128') unsafeAscii (ascii #. const replacement) 
 
 -- | Write a 'Char' with a Unicode codepoint below 128 using the ASCII encoding.
 -- If the codepoint is greater or equal to 128, then nothing is written.
