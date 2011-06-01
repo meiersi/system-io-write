@@ -58,12 +58,12 @@ module System.IO.Write (
   , module System.IO.Write.Int
   , module System.IO.Write.Word
   
-  -- * Writing floating point numbers
-  , module System.IO.Write.Floating
+  -- -- * Writing floating point numbers
+  -- , module System.IO.Write.Floating
 
   ) where
 
 import System.IO.Write.Internal
 import System.IO.Write.Word
 import System.IO.Write.Int
-import System.IO.Write.Floating
+-- import System.IO.Write.Floating

@@ -39,6 +39,8 @@ import Foreign (Word32, Word64)
 
 import Unsafe.Coerce (unsafeCoerce)
 
+{- These implementations are unsound: See http://hackage.haskell.org/trac/ghc/ticket/4092
+ - 
 -- | Coerce a 'Float' to a 'Word32'; i.e., interpret the 32-bit 'Float' value
 -- as an unsigned 32-bit 'Int. 
 --
@@ -53,6 +55,19 @@ coerceFloatToWord32 = unsafeCoerce
 {-# INLINE coerceDoubleToWord64 #-}
 coerceDoubleToWord64 :: Double -> Word64
 coerceDoubleToWord64 = unsafeCoerce
+
+-}
+
+-- TODO: implement and check "isEEE x" and "(sizeOf x) == 8"
+--
+{-# INLINE coerceFloatToWord32 #-}
+coerceFloatToWord32 :: Float -> Word32
+coerceFloatToWord32 = undefined
+
+-- | Coerce a 'Double' to a 'Word64'.
+{-# INLINE coerceDoubleToWord64 #-}
+coerceDoubleToWord64 :: Double -> Word64
+coerceDoubleToWord64 = undefined
 
 -- | Write a 'Float' in big endian format.
 {-# INLINE floatBE #-}
