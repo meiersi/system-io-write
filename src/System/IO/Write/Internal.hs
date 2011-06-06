@@ -40,8 +40,8 @@
 module System.IO.Write.Internal (
   -- * Poking a buffer
     Poke
-  , pokeN
   , pokeIO
+  , pokeN
 
   -- * Writing a bounded number of bytes
   , Write
@@ -94,10 +94,8 @@ import Prelude hiding (maxBound)
 -- instances also, as they may be more sensitive to too much work per Char.
 --
 
--- | Changing a sequence of bytes starting from the given pointer. 'Poke's are
--- the most primitive buffer manipulation. In most cases, you don't use the
--- explicitely but as part of a 'Write', which also tells how many bytes will
--- be changed at most. 
+-- | Poking a sequence of bytes. 'Poke's can be sequenced using their 'Monoid'
+-- instance. 
 newtype Poke = Poke { runPoke :: Ptr Word8 -> IO (Ptr Word8) }
 
 instance Monoid Poke where
@@ -110,16 +108,25 @@ instance Monoid Poke where
   {-# INLINE mconcat #-}
   mconcat = foldr mappend mempty
 
--- | @pokeN size io@ creates a write that denotes the writing of @size@ bytes
--- to a buffer using the IO action @io@. Note that @io@ MUST write EXACTLY @size@
--- bytes to the buffer!
-{-# INLINE pokeN #-}
-pokeN :: Int -> (Ptr Word8 -> IO ()) -> Poke
-pokeN size io = Poke $ \op -> io op >> return (op `plusPtr` size)
-
+-- | Poke a sequence of bytes starting from the given pointer and return the
+-- pointer to the next free byte.
+--
+-- Note that the 'IO' action underlying this 'Poke' must poke /exactly/ the
+-- bytes between the given start-pointer and the returned end-pointer. If more bytes
+-- were poked, then data outside the buffer might be overwritten; i.e, the
+-- resulting code would likely be vulnerable to a buffer overflow attack. If
+-- fewer bytes were poked, then some sensitive data might leak because not all
+-- data in the buffer is overwritten.
 {-# INLINE pokeIO #-}
 pokeIO :: (Ptr Word8 -> IO (Ptr Word8)) -> Poke
 pokeIO = Poke
+
+-- | An abbrevation for constructing 'Poke's of fixed-length sequences.
+--
+-- Note that the same preconditions as for 'pokeIO' apply.
+{-# INLINE pokeN #-}
+pokeN :: Int -> (Ptr Word8 -> IO ()) -> Poke
+pokeN size io = Poke $ \op -> io op >> return (op `plusPtr` size)
 
 
 
@@ -132,7 +139,9 @@ infixr 5 #>   -- prepend
 infixl 4 <#   -- append
 
 
-
+-- | 'Write's are built on top of 'Poke's by additionally keeping track
+-- of the maximal number of bytes that are written when executing the
+-- underlying 'Poke'.
 data Write a = Write {-# UNPACK #-} !Int (a -> Poke)
 
 -- | Get the raw encoding function encapsulated by the 'Write'.
