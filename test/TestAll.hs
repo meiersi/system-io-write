@@ -16,9 +16,9 @@ import Foreign
 
 import Numeric (showHex)
 
-import           System.IO.Write
-import           System.IO.Write.Test
-import qualified System.IO.Write.Char.Utf8 as Utf8
+import System.IO.Write
+import System.IO.Write.Test
+import System.IO.Write.Char.Utf8
 
 import Test.Framework
 import Test.Framework.Providers.QuickCheck2
@@ -40,38 +40,38 @@ testAll = testGroup "system-io-write"
 
 testWord :: Test
 testWord = testGroup "System.IO.Write.Word"
-  [ testProperty "word8"      $ prop_bigEndian    writeWord8
+  [ testProperty "word8"      $ prop_bigEndian    word8
 
-  , testProperty "word16BE"   $ prop_bigEndian    writeWord16be
-  , testProperty "word32BE"   $ prop_bigEndian    writeWord32be
-  , testProperty "word64BE"   $ prop_bigEndian    writeWord64be
+  , testProperty "word16BE"   $ prop_bigEndian    word16BE
+  , testProperty "word32BE"   $ prop_bigEndian    word32BE
+  , testProperty "word64BE"   $ prop_bigEndian    word64BE
                               
-  , testProperty "word16LE"   $ prop_littleEndian writeWord16le
-  , testProperty "word32LE"   $ prop_littleEndian writeWord32le
-  , testProperty "word64LE"   $ prop_littleEndian writeWord64le
+  , testProperty "word16LE"   $ prop_littleEndian word16LE
+  , testProperty "word32LE"   $ prop_littleEndian word32LE
+  , testProperty "word64LE"   $ prop_littleEndian word64LE
                               
-  , testProperty "word16Host" $ prop_hostEndian   writeWord16host
-  , testProperty "word32Host" $ prop_hostEndian   writeWord32host
-  , testProperty "word64Host" $ prop_hostEndian   writeWord64host
-  , testProperty "wordHost"   $ prop_hostEndian   writeWordhost
+  , testProperty "word16Host" $ prop_hostEndian   word16Host
+  , testProperty "word32Host" $ prop_hostEndian   word32Host
+  , testProperty "word64Host" $ prop_hostEndian   word64Host
+  , testProperty "wordHost"   $ prop_hostEndian   wordHost
   ]
 
 testInt :: Test
 testInt = testGroup "System.IO.Write.Int"
-  [ testProperty "int8"      $ prop_bigEndian    writeInt8
+  [ testProperty "int8"      $ prop_bigEndian    int8
 
-  , testProperty "int16BE"   $ prop_bigEndian    writeInt16be
-  , testProperty "int32BE"   $ prop_bigEndian    writeInt32be
-  , testProperty "int64BE"   $ prop_bigEndian    writeInt64be
+  , testProperty "int16BE"   $ prop_bigEndian    int16BE
+  , testProperty "int32BE"   $ prop_bigEndian    int32BE
+  , testProperty "int64BE"   $ prop_bigEndian    int64BE
                               
-  , testProperty "int16LE"   $ prop_littleEndian writeInt16le
-  , testProperty "int32LE"   $ prop_littleEndian writeInt32le
-  , testProperty "int64LE"   $ prop_littleEndian writeInt64le
+  , testProperty "int16LE"   $ prop_littleEndian int16LE
+  , testProperty "int32LE"   $ prop_littleEndian int32LE
+  , testProperty "int64LE"   $ prop_littleEndian int64LE
                               
-  , testProperty "int16Host" $ prop_hostEndian   writeInt16host
-  , testProperty "int32Host" $ prop_hostEndian   writeInt32host
-  , testProperty "int64Host" $ prop_hostEndian   writeInt64host
-  , testProperty "intHost"   $ prop_hostEndian   writeInthost
+  , testProperty "int16Host" $ prop_hostEndian   int16Host
+  , testProperty "int32Host" $ prop_hostEndian   int32Host
+  , testProperty "int64Host" $ prop_hostEndian   int64Host
+  , testProperty "intHost"   $ prop_hostEndian   intHost
   ]
 
 prop_bigEndian :: (Storable a, Bits a, Integral a) => Write a -> a -> Bool
@@ -97,27 +97,27 @@ prop_hostEndian = prop_littleEndian
 
 testCharUtf8 :: Test
 testCharUtf8 = testGroup "System.IO.Write.Char.Utf8"
-  [ testProperty "char" (cmpWriteErr (encodeUtf8 . return) Utf8.writeChar)
+  [ testProperty "utf8" (cmpWriteErr (encodeUtf8 . return) utf8)
 
-  , testProperty "hex :: Word8"  $ prop_base16Lower (Utf8.base16Lower :: Write Word8 )
-  , testProperty "hex :: Word16" $ prop_base16Lower (Utf8.base16Lower :: Write Word16)
-  , testProperty "hex :: Word32" $ prop_base16Lower (Utf8.base16Lower :: Write Word32)
-  , testProperty "hex :: Word64" $ prop_base16Lower (Utf8.base16Lower :: Write Word64)
+  , testProperty "utf8HexLower :: Word8"  $ prop_hexLower (utf8HexLower :: Write Word8 )
+  , testProperty "utf8HexLower :: Word16" $ prop_hexLower (utf8HexLower :: Write Word16)
+  , testProperty "utf8HexLower :: Word32" $ prop_hexLower (utf8HexLower :: Write Word32)
+  , testProperty "utf8HexLower :: Word64" $ prop_hexLower (utf8HexLower :: Write Word64)
 
-  , testProperty "hexUpper :: Word8"  $ prop_base16Upper (Utf8.base16Upper :: Write Word8 )
-  , testProperty "hexUpper :: Word16" $ prop_base16Upper (Utf8.base16Upper :: Write Word16)
-  , testProperty "hexUpper :: Word32" $ prop_base16Upper (Utf8.base16Upper :: Write Word32)
-  , testProperty "hexUpper :: Word64" $ prop_base16Upper (Utf8.base16Upper :: Write Word64)
+  , testProperty "utf8HexUpper :: Word8"  $ prop_hexUpper (utf8HexUpper :: Write Word8 )
+  , testProperty "utf8HexUpper :: Word16" $ prop_hexUpper (utf8HexUpper :: Write Word16)
+  , testProperty "utf8HexUpper :: Word32" $ prop_hexUpper (utf8HexUpper :: Write Word32)
+  , testProperty "utf8HexUpper :: Word64" $ prop_hexUpper (utf8HexUpper :: Write Word64)
 
-  , testProperty "hexNoLead :: Word8"  $ prop_base16LowerNoLead (Utf8.base16LowerNoLead :: Write Word8 )
-  , testProperty "hexNoLead :: Word16" $ prop_base16LowerNoLead (Utf8.base16LowerNoLead :: Write Word16)
-  , testProperty "hexNoLead :: Word32" $ prop_base16LowerNoLead (Utf8.base16LowerNoLead :: Write Word32)
-  , testProperty "hexNoLead :: Word64" $ prop_base16LowerNoLead (Utf8.base16LowerNoLead :: Write Word64)
+  , testProperty "utf8HexLowerNoLead :: Word8"  $ prop_hexLowerNoLead (utf8HexLowerNoLead :: Write Word8 )
+  , testProperty "utf8HexLowerNoLead :: Word16" $ prop_hexLowerNoLead (utf8HexLowerNoLead :: Write Word16)
+  , testProperty "utf8HexLowerNoLead :: Word32" $ prop_hexLowerNoLead (utf8HexLowerNoLead :: Write Word32)
+  , testProperty "utf8HexLowerNoLead :: Word64" $ prop_hexLowerNoLead (utf8HexLowerNoLead :: Write Word64)
 
-  , testProperty "hexUpperNoLead :: Word8"  $ prop_base16UpperNoLead (Utf8.base16UpperNoLead :: Write Word8 )
-  , testProperty "hexUpperNoLead :: Word16" $ prop_base16UpperNoLead (Utf8.base16UpperNoLead :: Write Word16)
-  , testProperty "hexUpperNoLead :: Word32" $ prop_base16UpperNoLead (Utf8.base16UpperNoLead :: Write Word32)
-  , testProperty "hexUpperNoLead :: Word64" $ prop_base16UpperNoLead (Utf8.base16UpperNoLead :: Write Word64)
+  , testProperty "utf8HexUpperNoLead :: Word8"  $ prop_hexUpperNoLead (utf8HexUpperNoLead :: Write Word8 )
+  , testProperty "utf8HexUpperNoLead :: Word16" $ prop_hexUpperNoLead (utf8HexUpperNoLead :: Write Word16)
+  , testProperty "utf8HexUpperNoLead :: Word32" $ prop_hexUpperNoLead (utf8HexUpperNoLead :: Write Word32)
+  , testProperty "utf8HexUpperNoLead :: Word64" $ prop_hexUpperNoLead (utf8HexUpperNoLead :: Write Word64)
   ]
 
 
@@ -150,26 +150,26 @@ encodeUtf8 = concatMap (map fromIntegral . go . ord)
 -- Hex encoding properties
 --------------------------
 
-prop_base16LowerNoLead :: Integral a => Write a -> a -> Bool
-prop_base16LowerNoLead = prop_base16NoLead id
+prop_hexLowerNoLead :: Integral a => Write a -> a -> Bool
+prop_hexLowerNoLead = prop_hexNoLead id
 
-prop_base16UpperNoLead :: Integral a => Write a -> a -> Bool
-prop_base16UpperNoLead = prop_base16NoLead toUpper
+prop_hexUpperNoLead :: Integral a => Write a -> a -> Bool
+prop_hexUpperNoLead = prop_hexNoLead toUpper
 
-prop_base16NoLead :: Integral a => (Char -> Char) -> Write a -> a -> Bool
-prop_base16NoLead conv =
+prop_hexNoLead :: Integral a => (Char -> Char) -> Write a -> a -> Bool
+prop_hexNoLead conv =
     cmpWriteErr f
   where
     f x = encodeUtf8 $ map conv $ showHex x ""
 
-prop_base16Lower :: (Storable a, Integral a) => Write a -> a -> Bool
-prop_base16Lower = prop_base16 id
+prop_hexLower :: (Storable a, Integral a) => Write a -> a -> Bool
+prop_hexLower = prop_hex id
 
-prop_base16Upper :: (Storable a, Integral a) => Write a -> a -> Bool
-prop_base16Upper = prop_base16 toUpper
+prop_hexUpper :: (Storable a, Integral a) => Write a -> a -> Bool
+prop_hexUpper = prop_hex toUpper
 
-prop_base16 :: (Storable a, Integral a) => (Char -> Char) -> Write a -> a -> Bool
-prop_base16 conv =
+prop_hex :: (Storable a, Integral a) => (Char -> Char) -> Write a -> a -> Bool
+prop_hex conv =
     cmpWriteErr f
   where
     f x      = encodeUtf8 $ pad (2 * sizeOf x) $ map conv $ showHex x ""
