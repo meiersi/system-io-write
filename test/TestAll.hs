@@ -99,25 +99,47 @@ testCharUtf8 :: Test
 testCharUtf8 = testGroup "System.IO.Write.Char.Utf8"
   [ testProperty "utf8" (cmpWriteErr (encodeUtf8 . return) utf8)
 
-  , testProperty "utf8HexLower :: Word8"  $ prop_hexLower (utf8HexLower :: Write Word8 )
-  , testProperty "utf8HexLower :: Word16" $ prop_hexLower (utf8HexLower :: Write Word16)
-  , testProperty "utf8HexLower :: Word32" $ prop_hexLower (utf8HexLower :: Write Word32)
-  , testProperty "utf8HexLower :: Word64" $ prop_hexLower (utf8HexLower :: Write Word64)
+  , testProperty "utf8HexLower :: Word8"  $ prop_hexLower id (utf8HexLower :: Write Word8 )
+  , testProperty "utf8HexLower :: Word16" $ prop_hexLower id (utf8HexLower :: Write Word16)
+  , testProperty "utf8HexLower :: Word32" $ prop_hexLower id (utf8HexLower :: Write Word32)
+  , testProperty "utf8HexLower :: Word64" $ prop_hexLower id (utf8HexLower :: Write Word64)
 
-  , testProperty "utf8HexUpper :: Word8"  $ prop_hexUpper (utf8HexUpper :: Write Word8 )
-  , testProperty "utf8HexUpper :: Word16" $ prop_hexUpper (utf8HexUpper :: Write Word16)
-  , testProperty "utf8HexUpper :: Word32" $ prop_hexUpper (utf8HexUpper :: Write Word32)
-  , testProperty "utf8HexUpper :: Word64" $ prop_hexUpper (utf8HexUpper :: Write Word64)
+  , testProperty "utf8HexUpper :: Word8"  $ prop_hexUpper id (utf8HexUpper :: Write Word8 )
+  , testProperty "utf8HexUpper :: Word16" $ prop_hexUpper id (utf8HexUpper :: Write Word16)
+  , testProperty "utf8HexUpper :: Word32" $ prop_hexUpper id (utf8HexUpper :: Write Word32)
+  , testProperty "utf8HexUpper :: Word64" $ prop_hexUpper id (utf8HexUpper :: Write Word64)
 
-  , testProperty "utf8HexLowerNoLead :: Word8"  $ prop_hexLowerNoLead (utf8HexLowerNoLead :: Write Word8 )
-  , testProperty "utf8HexLowerNoLead :: Word16" $ prop_hexLowerNoLead (utf8HexLowerNoLead :: Write Word16)
-  , testProperty "utf8HexLowerNoLead :: Word32" $ prop_hexLowerNoLead (utf8HexLowerNoLead :: Write Word32)
-  , testProperty "utf8HexLowerNoLead :: Word64" $ prop_hexLowerNoLead (utf8HexLowerNoLead :: Write Word64)
+  , testProperty "utf8HexLowerNoLead :: Word8"  $ prop_hexLowerNoLead id (utf8HexLowerNoLead :: Write Word8 )
+  , testProperty "utf8HexLowerNoLead :: Word16" $ prop_hexLowerNoLead id (utf8HexLowerNoLead :: Write Word16)
+  , testProperty "utf8HexLowerNoLead :: Word32" $ prop_hexLowerNoLead id (utf8HexLowerNoLead :: Write Word32)
+  , testProperty "utf8HexLowerNoLead :: Word64" $ prop_hexLowerNoLead id (utf8HexLowerNoLead :: Write Word64)
 
-  , testProperty "utf8HexUpperNoLead :: Word8"  $ prop_hexUpperNoLead (utf8HexUpperNoLead :: Write Word8 )
-  , testProperty "utf8HexUpperNoLead :: Word16" $ prop_hexUpperNoLead (utf8HexUpperNoLead :: Write Word16)
-  , testProperty "utf8HexUpperNoLead :: Word32" $ prop_hexUpperNoLead (utf8HexUpperNoLead :: Write Word32)
-  , testProperty "utf8HexUpperNoLead :: Word64" $ prop_hexUpperNoLead (utf8HexUpperNoLead :: Write Word64)
+  , testProperty "utf8HexUpperNoLead :: Word8"  $ prop_hexUpperNoLead id (utf8HexUpperNoLead :: Write Word8 )
+  , testProperty "utf8HexUpperNoLead :: Word16" $ prop_hexUpperNoLead id (utf8HexUpperNoLead :: Write Word16)
+  , testProperty "utf8HexUpperNoLead :: Word32" $ prop_hexUpperNoLead id (utf8HexUpperNoLead :: Write Word32)
+  , testProperty "utf8HexUpperNoLead :: Word64" $ prop_hexUpperNoLead id (utf8HexUpperNoLead :: Write Word64)
+
+    -- we need an explicit conversion to the corresponding WordX type because
+    -- showHex only works for positive numbers.
+  , testProperty "utf8HexLower :: Int8"  $ prop_hexLower (fromIntegral :: Int8 -> Word8)   (utf8HexLower :: Write Int8 )
+  , testProperty "utf8HexLower :: Int16" $ prop_hexLower (fromIntegral :: Int16 -> Word16) (utf8HexLower :: Write Int16)
+  , testProperty "utf8HexLower :: Int32" $ prop_hexLower (fromIntegral :: Int32 -> Word32) (utf8HexLower :: Write Int32)
+  , testProperty "utf8HexLower :: Int64" $ prop_hexLower (fromIntegral :: Int64 -> Word64) (utf8HexLower :: Write Int64)
+
+  , testProperty "utf8HexUpper :: Int8"  $ prop_hexUpper (fromIntegral :: Int8 -> Word8)   (utf8HexUpper :: Write Int8 )
+  , testProperty "utf8HexUpper :: Int16" $ prop_hexUpper (fromIntegral :: Int16 -> Word16) (utf8HexUpper :: Write Int16)
+  , testProperty "utf8HexUpper :: Int32" $ prop_hexUpper (fromIntegral :: Int32 -> Word32) (utf8HexUpper :: Write Int32)
+  , testProperty "utf8HexUpper :: Int64" $ prop_hexUpper (fromIntegral :: Int64 -> Word64) (utf8HexUpper :: Write Int64)
+
+  , testProperty "utf8HexLowerNoLead :: Int8"  $ prop_hexLowerNoLead (fromIntegral :: Int8 -> Word8)   (utf8HexLowerNoLead :: Write Int8 )
+  , testProperty "utf8HexLowerNoLead :: Int16" $ prop_hexLowerNoLead (fromIntegral :: Int16 -> Word16) (utf8HexLowerNoLead :: Write Int16)
+  , testProperty "utf8HexLowerNoLead :: Int32" $ prop_hexLowerNoLead (fromIntegral :: Int32 -> Word32) (utf8HexLowerNoLead :: Write Int32)
+  , testProperty "utf8HexLowerNoLead :: Int64" $ prop_hexLowerNoLead (fromIntegral :: Int64 -> Word64) (utf8HexLowerNoLead :: Write Int64)
+
+  , testProperty "utf8HexUpperNoLead :: Int8"  $ prop_hexUpperNoLead (fromIntegral :: Int8 -> Word8)   (utf8HexUpperNoLead :: Write Int8 )
+  , testProperty "utf8HexUpperNoLead :: Int16" $ prop_hexUpperNoLead (fromIntegral :: Int16 -> Word16) (utf8HexUpperNoLead :: Write Int16)
+  , testProperty "utf8HexUpperNoLead :: Int32" $ prop_hexUpperNoLead (fromIntegral :: Int32 -> Word32) (utf8HexUpperNoLead :: Write Int32)
+  , testProperty "utf8HexUpperNoLead :: Int64" $ prop_hexUpperNoLead (fromIntegral :: Int64 -> Word64) (utf8HexUpperNoLead :: Write Int64)
   ]
 
 
@@ -150,29 +172,30 @@ encodeUtf8 = concatMap (map fromIntegral . go . ord)
 -- Hex encoding properties
 --------------------------
 
-prop_hexLowerNoLead :: Integral a => Write a -> a -> Bool
-prop_hexLowerNoLead = prop_hexNoLead id
+prop_hexLower :: (Show a, Storable a, Integral b) => (a -> b) -> Write a -> a -> Bool
+prop_hexLower = prop_hex id 
 
-prop_hexUpperNoLead :: Integral a => Write a -> a -> Bool
-prop_hexUpperNoLead = prop_hexNoLead toUpper
-
-prop_hexNoLead :: Integral a => (Char -> Char) -> Write a -> a -> Bool
-prop_hexNoLead conv =
-    cmpWriteErr f
-  where
-    f x = encodeUtf8 $ map conv $ showHex x ""
-
-prop_hexLower :: (Storable a, Integral a) => Write a -> a -> Bool
-prop_hexLower = prop_hex id
-
-prop_hexUpper :: (Storable a, Integral a) => Write a -> a -> Bool
+prop_hexUpper :: (Show a, Storable a, Integral b) => (a -> b) -> Write a -> a -> Bool
 prop_hexUpper = prop_hex toUpper
 
-prop_hex :: (Storable a, Integral a) => (Char -> Char) -> Write a -> a -> Bool
-prop_hex conv =
+prop_hexLowerNoLead :: (Show a, Integral b) => (a -> b) -> Write a -> a -> Bool
+prop_hexLowerNoLead = prop_hexNoLead id
+
+prop_hexUpperNoLead :: (Show a, Integral b) => (a -> b) -> Write a -> a -> Bool
+prop_hexUpperNoLead = prop_hexNoLead toUpper
+
+prop_hex :: (Show a, Storable a, Integral b) 
+         => (Char -> Char) -> (a -> b) -> Write a -> a -> Bool
+prop_hex convChar convArg =
     cmpWriteErr f
   where
-    f x      = encodeUtf8 $ pad (2 * sizeOf x) $ map conv $ showHex x ""
+    f x      = encodeUtf8 $ pad (2 * sizeOf x) $ map convChar $ showHex (convArg x) ""
     pad n cs = replicate (n - length cs) '0' ++ cs
 
+prop_hexNoLead :: (Show a, Integral b) 
+               => (Char -> Char) -> (a -> b) -> Write a -> a -> Bool
+prop_hexNoLead convChar convArg =
+    cmpWriteErr f
+  where
+    f x = encodeUtf8 $ map convChar $ showHex (convArg x) ""
 
