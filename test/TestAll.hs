@@ -20,6 +20,8 @@ import System.IO.Write
 import System.IO.Write.Test
 import System.IO.Write.Char.Utf8
 
+import System.ByteOrder  -- from byteorder-1.0.3
+
 import Test.Framework
 import Test.Framework.Providers.QuickCheck2
 
@@ -86,9 +88,12 @@ prop_littleEndian =
   where
     f x = map (fromIntegral . (x `shiftR`) . (8*)) $ [0..sizeOf x - 1]
 
--- | TODO: Use conditional compilation to select correct endianness.
 prop_hostEndian :: (Storable a, Bits a, Integral a) => Write a -> a -> Bool
-prop_hostEndian = prop_littleEndian
+prop_hostEndian = case byteOrder of
+  LittleEndian -> prop_littleEndian
+  BigEndian    -> prop_bigEndian
+  _            -> error $ 
+      "system-io-write: unsupported byteorder '" ++ show byteOrder ++ "'"
 
 
 ------------------------------------------------------------------------------
