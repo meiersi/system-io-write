@@ -1,6 +1,7 @@
 Name:                system-io-write
 Version:             0.1.0.0
-Synopsis:            Compile-time abstraction of writing of a bounded number of bytes to memory
+Synopsis:            Compile-time abstraction of writing a bounded number of
+                     bytes to memory
 
 Description:         
                      The main use of the /Write/ abstraction provided by this
