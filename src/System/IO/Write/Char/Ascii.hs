@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, BangPatterns #-}
+{-# LANGUAGE CPP, ScopedTypeVariables, BangPatterns #-}
 -- |
 -- Copyright   : (c) 2011 Simon Meier
 -- License     : BSD3-style (see LICENSE)
@@ -91,6 +91,47 @@ class AsciiHexWritable a where
     asciiHexUpperNoLead :: Write a
     -- | Hexadecimal encoding with upper-case characters and no leading zeros.
     asciiHexLowerNoLead :: Write a
+#if WORD_SIZE_IN_BITS < 64
+instance AsciiHexWritable Word where
+    {-# INLINE asciiHexLower #-}
+    {-# INLINE asciiHexUpper #-}
+    {-# INLINE asciiHexLowerNoLead #-}
+    {-# INLINE asciiHexUpperNoLead #-}
+    asciiHexLower       = word32Hex lowerTable #. fromIntegral
+    asciiHexUpper       = word32Hex upperTable #. fromIntegral
+    asciiHexLowerNoLead = asciiHexNoLead lowerTable
+    asciiHexUpperNoLead = asciiHexNoLead upperTable
+
+instance AsciiHexWritable Int where
+    {-# INLINE asciiHexLower #-}
+    {-# INLINE asciiHexUpper #-}
+    {-# INLINE asciiHexLowerNoLead #-}
+    {-# INLINE asciiHexUpperNoLead #-}
+    asciiHexLower       = word32Hex lowerTable #. fromIntegral
+    asciiHexUpper       = word32Hex upperTable #. fromIntegral
+    asciiHexLowerNoLead = asciiHexNoLead lowerTable
+    asciiHexUpperNoLead = asciiHexNoLead upperTable
+#else
+instance AsciiHexWritable Word where
+    {-# INLINE asciiHexLower #-}
+    {-# INLINE asciiHexUpper #-}
+    {-# INLINE asciiHexLowerNoLead #-}
+    {-# INLINE asciiHexUpperNoLead #-}
+    asciiHexLower       = word64Hex lowerTable #. fromIntegral
+    asciiHexUpper       = word64Hex upperTable #. fromIntegral
+    asciiHexLowerNoLead = asciiHexNoLead lowerTable
+    asciiHexUpperNoLead = asciiHexNoLead upperTable
+
+instance AsciiHexWritable Int where
+    {-# INLINE asciiHexLower #-}
+    {-# INLINE asciiHexUpper #-}
+    {-# INLINE asciiHexLowerNoLead #-}
+    {-# INLINE asciiHexUpperNoLead #-}
+    asciiHexLower       = word64Hex lowerTable #. fromIntegral
+    asciiHexUpper       = word64Hex upperTable #. fromIntegral
+    asciiHexLowerNoLead = asciiHexNoLead lowerTable
+    asciiHexUpperNoLead = asciiHexNoLead upperTable
+#endif
 
 instance AsciiHexWritable Word8 where
     {-# INLINE asciiHexLower #-}
