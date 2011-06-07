@@ -231,7 +231,7 @@ writeStorable =
 
 -- | 'Write's are cofunctors. The following laws hold.
 --
--- > w #. id = w
+-- > w #. id      = w
 -- > w #. (f . g) = w #. f #. g
 --
 -- A typical use of 'comapWrite' is the definition of 

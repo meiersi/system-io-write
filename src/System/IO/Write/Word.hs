@@ -1,15 +1,14 @@
 {-# LANGUAGE CPP, MonoPatBinds #-}
--- |
--- Copyright   : (c) 2010 Jasper Van der Jeugt & Simon Meier
+-- | Copyright: (c) 2010 Jasper Van der Jeugt & Simon Meier
+--              
+--              Original serialization code from 'Data.Binary.Builder':
+--              (c) Lennart Kolmodin, Ross Patterson
 --
---               Original serialization code from 'Data.Binary.Builder':
---               (c) Lennart Kolmodin, Ross Patterson
---
--- License     : BSD3-style (see LICENSE)
+-- License    : BSD3-style (see LICENSE)
 -- 
--- Maintainer  : Simon Meier <iridcode@gmail.com>
--- Stability   : experimental
--- Portability : tested on GHC only
+-- Maintainer : Simon Meier <iridcode@gmail.com>
+-- Stability  : experimental
+-- Portability: tested on GHC only
 --
 -- 'Write's for encoding bounded-size unsigned integers using big-endian,
 -- little-endian, and host-endian encodings.

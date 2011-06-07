@@ -38,32 +38,42 @@
 --
 -- /TODO: Improve documentation of module contents./
 module System.IO.Write (
-  -- * The @Write@ type
+  -- * The Write type
     Write
-  , comapWrite
+  
+
+  -- ** Basic combinators
   , (#.)
+  , comapWrite
   , writeNothing
   , writeIf
   , writeMaybe
   , writeEither
   , write2
+
+  -- ** Convenience combinators
+  , (#>)
+  , prepend
+  , (<#)
+  , append
   , write3
   , write4
-  , prepend
-  , (#>)
-  , append
-  , (<#)
- 
-  -- * Writing Unicode characters
+  , write8
+
+  -- ** Writing Unicode characters
   , module System.IO.Write.Char.Ascii
   , module System.IO.Write.Char.Utf8
 
-  -- * Writing fixed-width integers
+  -- ** Writing fixed-width integers
   , module System.IO.Write.Int
   , module System.IO.Write.Word
 
   -- -- * Writing floating point numbers
   -- , module System.IO.Write.Floating
+
+  -- * Debugging
+  , evalWrite
+  , showWrite
 
   ) where
 
@@ -73,6 +83,5 @@ import System.IO.Write.Char.Utf8
 import System.IO.Write.Word
 import System.IO.Write.Int
 -- import System.IO.Write.Floating
---
+
 import System.IO.Write.Test
-import Foreign
