@@ -84,6 +84,8 @@ encodeCharUtf8 f1 f2 f3 f4 c = case ord c of
 -- | Fixed-width hexadecimal encoding with lower-case characters encoded using
 -- the UTF-8 encoding.
 --
+-- > showWrite utf8HexLower (26 :: Word16) = "001a"
+--
 -- Note that we exploit that the UTF-8 encoding coincides with the ASCII
 -- encoding on codepoints below 128. This is the origin of the
 -- 'AsciiHexWritable' class constraint.
@@ -95,6 +97,8 @@ utf8HexLower = asciiHexLower
 -- | Fixed-width hexadecimal encoding with upper-case characters encoded using
 -- the UTF-8 encoding.
 --
+-- > showWrite utf8HexUpper (26 :: Word16) = "001A"
+--
 {-# INLINE utf8HexUpper #-}
 utf8HexUpper :: AsciiHexWritable a => Write a
 utf8HexUpper = asciiHexUpper
@@ -102,12 +106,16 @@ utf8HexUpper = asciiHexUpper
 -- | Hexadecimal encoding with no leading zeros and lower-case characters
 -- encoded using the UTF-8 encoding.
 --
+-- > showWrite utf8HexLowerNoLead (26 :: Word16) = "1a"
+--
 {-# INLINE utf8HexLowerNoLead #-}
 utf8HexLowerNoLead :: AsciiHexWritable a => Write a
 utf8HexLowerNoLead = asciiHexLowerNoLead
                   
 -- | Hexadecimal encoding with  no leading zeros and upper-case characters
 -- encoded using the UTF-8 encoding.
+--
+-- > showWrite utf8HexUpperNoLead (26 :: Word16) = "1A"
 --
 {-# INLINE utf8HexUpperNoLead #-}
 utf8HexUpperNoLead :: AsciiHexWritable a => Write a

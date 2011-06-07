@@ -11,6 +11,8 @@
 module System.IO.Write.Test (
   -- * Testing writes
     WriteFailure
+  , evalWrite
+  , showWrite
   , testWrite
   , cmpWrite
   , cmpWrite_
@@ -80,6 +82,16 @@ instance Show WriteFailure where
  
 -- Execution a write and testing its invariants
 -----------------------------------------------
+
+-- | Execute a 'Write' and return the written list of bytes.
+evalWrite :: Write a -> a -> [Word8]
+evalWrite w x = case testWrite w x of
+    Left err  -> error $ "evalWrite: " ++ show err
+    Right res -> res
+
+-- | Execute a 'Write' and return the written list of bytes.
+showWrite :: Write a -> a -> [Char]
+showWrite w x = map (toEnum . fromEnum) $ evalWrite w x
 
 -- | Execute a 'Write' twice and check that all post-conditions hold and the
 -- written values are identical. In case of success, a list of the written

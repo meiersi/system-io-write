@@ -7,13 +7,13 @@
 -- Stability   : experimental
 -- Portability : tested on GHC only
 --
--- 'Write's for the ASCII encoding of characters. 
+-- 'Write's for the ASCII encoding of characters 
+-- (cf. <http://tools.ietf.org/html/rfc20>).
 --
 -- They are intended for constructing output in formats that explicitly
 -- restrict the character encoding to 7-bit ASCII encoded characters. In all
--- other cases, a lossless Unicode encoding is probably a better choice. For
--- example, support for the lossless UTF-8 encoding is provided in
--- 'System.IO.Write.Char.Utf8'.
+-- other cases, a lossless Unicode encoding (e.g., "System.IO.Write.Char.Utf8")
+-- is a better choice.
 --
 module System.IO.Write.Char.Ascii
     ( 
@@ -28,15 +28,17 @@ module System.IO.Write.Char.Ascii
     ) where
 
 import Foreign
-import Data.Char (ord)
+import Data.Char
 
 import System.IO.Write.Internal
 import System.IO.Write.Internal.Base16
 import System.IO.Write.Word
 
+import System.IO.Write.Test 
+
 -- | Write a 'Char' with a Unicode codepoint less than 128 using the ASCII
--- encoding. This function is unsafe because for codepoints greater or equal to
--- 128 no guarantee on the written byte is given except that exactly one byte
+-- encoding. This function is unsafe because, for codepoints greater or equal to
+-- 128, no guarantee on the written byte is given except that exactly one byte
 -- is written.
 --
 {-# INLINE unsafeAscii #-}
@@ -55,8 +57,8 @@ ascii =
 
 -- | Write a 'Char' with a Unicode codepoint below 128 using the ASCII
 -- encoding. If the codepoint is greater or equal to 128, the replacement
--- character is written. This character must have a codepoint below 128,
--- as otherwise an error is thrown.
+-- character is written. The replacement character must have a codepoint below
+-- 128, as otherwise an error is thrown.
 --
 {-# INLINE asciiReplace #-}
 asciiReplace :: Char       -- ^ Replacement character for codepoints greater or equal to 128
@@ -65,7 +67,7 @@ asciiReplace replacement =
     writeIf (< '\128') unsafeAscii (ascii #. const replacement) 
 
 -- | Write a 'Char' with a Unicode codepoint below 128 using the ASCII encoding.
--- If the codepoint is greater or equal to 128, then nothing is written.
+-- If the codepoint is greater or equal to 128, nothing is written.
 --
 -- Note that dropping characters during encoding is often dangerous, as it may
 -- lead to unintended interpretations of the written output. Either use
@@ -84,13 +86,25 @@ asciiDrop = writeIf (< '\128') unsafeAscii writeNothing
 -- | Values that support a hexadecimal encoding with ASCII encoded characters.
 class AsciiHexWritable a where
     -- | Fixed-width hexadecimal encoding with lower-case characters.
+    --
+    -- > showWrite asciiHexLower (26 :: Word16) = "001a"
+    --
     asciiHexLower       :: Write a
     -- | Fixed-width hexadecimal encoding with upper-case characters.
+    --
+    -- > showWrite asciiHexUpper (26 :: Word16) = "001A"
+    --
     asciiHexUpper       :: Write a
-    -- | Hexadecimal encoding with lower-case characters and no leading zeros.
-    asciiHexUpperNoLead :: Write a
     -- | Hexadecimal encoding with upper-case characters and no leading zeros.
+    --
+    -- > showWrite asciiHexLowerNoLead (26 :: Word16) = "1a"
+    --
     asciiHexLowerNoLead :: Write a
+    -- | Hexadecimal encoding with lower-case characters and no leading zeros.
+    --
+    -- > showWrite asciiHexUpperNoLead (26 :: Word16) = "1A"
+    --
+    asciiHexUpperNoLead :: Write a
 #if WORD_SIZE_IN_BITS < 64
 instance AsciiHexWritable Word where
     {-# INLINE asciiHexLower #-}
