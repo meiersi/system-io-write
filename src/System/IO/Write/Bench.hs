@@ -8,44 +8,48 @@
 -- Portability : tested on GHC only
 --
 -- Support for benchmarking writes.
+--
 module System.IO.Write.Bench where
+
+import System.IO.Write.Internal
 
 import Foreign
 
-import           System.IO.Write.Internal hiding ( (#.#) )
+-- | Repeatedly execute a 'Write' on a fixed value. The output is written
+-- consecutively into a single array to incorporate to-memory-bandwidth in the
+-- measurement.
+{-# INLINE writeReplicated #-}
+writeReplicated :: Int     -- ^ Number of repetitions
+                -> Write a -- ^ 'Write' to execute
+                -> a       -- ^ Value to encode
+                -> IO ()   -- ^ 'IO' action to benchmark
+writeReplicated n0 w x 
+  | n0 <= 0   = return ()
+  | otherwise = do
+      fpbuf <- mallocForeignPtrBytes (n0 * getBound w)
+      withForeignPtr fpbuf (loop n0) >> return ()
+  where
+    loop 0 !op = return op
+    loop n !op = runWrite w x op >>= loop (n - 1)
 
-import qualified Data.ByteString          as S
-import qualified Data.ByteString.Internal as S
 
-{-
-toByteString :: Write a -> a -> S.ByteString
-toByteString w x = S.inlinePerformIO $ do
-    fpbuf <- S.mallocByteString (writeBound w)
-    let op = unsafeForeignPtrToPtr fpbuf
-    op' <- runWrite w x op
-    return $ S.PS fpbuf 0 (op' `minusPtr` op)
--}
+-- | Execute a 'Write' on each value of bounded-length prefix of a list. The
+-- output is written consecutively into a single array to incorporate
+-- to-memory-bandwidth in the measurement.
+{-# INLINE writeList #-}
+writeList :: Int     -- ^ Maximal length of prefix
+          -> Write a -- ^ 'Write' to execute
+          -> [a]     -- ^ Values to encode
+          -> IO ()   -- ^ 'IO' action to benchmark
+writeList n0 w xs0
+  | n0 <= 0   = return ()
+  | otherwise = do
+      fpbuf <- mallocForeignPtrBytes (n0 * getBound w)
+      withForeignPtr fpbuf (loop n0 xs0) >> return ()
+  where
+    loop !n xs !op
+      | n <= 0    = return op
+      | otherwise = case xs of
+          []      -> return op
+          (x:xs') -> runWrite w x op >>= loop (n - 1) xs'
 
-{-# INLINE toByteStringReplicated #-}
-toByteStringReplicated :: Int -> Write a -> a -> S.ByteString
-toByteStringReplicated n0 w x = S.inlinePerformIO $ do
-    fpbuf <- S.mallocByteString (n0 * writeBound w)
-    let op0      = unsafeForeignPtrToPtr fpbuf
-        loop 0 !op = return op
-        loop n !op = runWrite w x op >>= loop (pred n)
-    op <- loop n0 op0
-    return $ S.PS fpbuf 0 (op `minusPtr` op0)
-
-{-# INLINE toByteStringList #-}
-toByteStringList :: Int -> Write a -> [a] -> S.ByteString
-toByteStringList n0 w xs0 = unsafePerformIO $ do
-    fpbuf <- S.mallocByteString (n0 * writeBound w)
-    let loop !n xs !op
-          | n <= 0    = return op
-          | otherwise = case xs of
-              []      -> return op
-              (x:xs') -> runWrite w x op >>= loop (n - 1) xs'
-
-        op0 = unsafeForeignPtrToPtr fpbuf
-    op <- loop n0 xs0 op0
-    return $ S.PS fpbuf 0 (op `minusPtr` op0)
