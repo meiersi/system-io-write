@@ -13,6 +13,9 @@
 --
 -- Utilty module defining unchecked shifts.
 --
+-- These functions are undefined when the amount being shifted by is
+-- greater than the size in bits of a machine Int#.-
+--
 #if defined(__GLASGOW_HASKELL__) && !defined(__HADDOCK__)
 #include "MachDeps.h"
 #endif
@@ -23,7 +26,6 @@ module System.IO.Write.Internal.UncheckedShifts (
   , shiftr_w64
   ) where
 
--- TODO: Check validity of this implementation
 
 #if defined(__GLASGOW_HASKELL__) && !defined(__HADDOCK__)
 import GHC.Base
@@ -40,10 +42,15 @@ import Data.Word
 ------------------------------------------------------------------------
 -- Unchecked shifts
 
+-- | Right-shift of a 'Word16'.
 {-# INLINE shiftr_w16 #-}
 shiftr_w16 :: Word16 -> Int -> Word16
+
+-- | Right-shift of a 'Word32'.
 {-# INLINE shiftr_w32 #-}
 shiftr_w32 :: Word32 -> Int -> Word32
+
+-- | Right-shift of a 'Word64'.
 {-# INLINE shiftr_w64 #-}
 shiftr_w64 :: Word64 -> Int -> Word64
 

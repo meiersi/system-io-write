@@ -39,6 +39,13 @@
 -- /TODO: Improve documentation of module contents./
 module System.IO.Write.Internal (
   -- * Poking a buffer
+  
+  -- | We abstract raw 'IO' actions for poking a buffer in a separate type.
+  -- This allows us to change the actual implementation of buffer-poking in the
+  -- future with minimal breakage of client code. Note that, in contrast to the
+  -- 'poke' function provided by 'Storable', a 'Poke' is not restricted to
+  -- poking a fixed number of bytes.
+  --
     Poke
   , pokeIO
   , pokeN
@@ -54,25 +61,40 @@ module System.IO.Write.Internal (
   , exactWrite
   , writeStorable
 
+  -- ** Using IO inside a Write
+  , writeLiftIO
+
   -- ** Safe combinators
-  , comapWrite
+
+  -- | The following combinators ensure that the bound on the maximal
+  -- number of bytes written is always computed correctly. Hence, applying them 
+  -- to safe writes always results in a safe write.
+  -- Moreover, care is taken to compute that bound such that the compiler can
+  -- optimize it to a compile time constant, if that is possible.
+  
+  -- *** Basic building blocks
+  
+  -- | These combinators cannot be implemented without breaking the 'Write' abstraction.
   , (#.)
-  , append 
-  , (#>)
-  , prepend 
-  , (<#)
+  , comapWrite
+  , write2
   , writeNothing
   , writeIf
   , writeMaybe
   , writeEither
-  , write2
+
+  -- *** Convenience
+  
+  -- | These combinators can be implemented on top of the basic building
+  -- blocks. We provide them here for convenience.
+  , (#>)
+  , prepend 
+  , (<#)
+  , append 
   , write3
   , write4
   , write8
   
-  -- ** Using IO inside a Write
-  , writeLiftIO
-
   ) where
 
 import Control.Monad ( (>=>) )
@@ -114,7 +136,7 @@ instance Monoid Poke where
 -- Note that the 'IO' action underlying this 'Poke' must poke /exactly/ the
 -- bytes between the given start-pointer and the returned end-pointer. If more bytes
 -- were poked, then data outside the buffer might be overwritten; i.e, the
--- resulting code would likely be vulnerable to a buffer overflow attack. If
+-- resulting code would likely be vulnerable to a buffer-overflow attack. If
 -- fewer bytes were poked, then some sensitive data might leak because not all
 -- data in the buffer is overwritten.
 {-# INLINE pokeIO #-}
@@ -123,7 +145,8 @@ pokeIO = Poke
 
 -- | An abbrevation for constructing 'Poke's of fixed-length sequences.
 --
--- Note that the same preconditions as for 'pokeIO' apply.
+-- /Preconditions:/ the given number of the poked bytes must agree precisely
+-- with the actual implementation (analogously to 'pokeIO').
 {-# INLINE pokeN #-}
 pokeN :: Int -> (Ptr Word8 -> IO ()) -> Poke
 pokeN size io = Poke $ \op -> io op >> return (op `plusPtr` size)
@@ -139,24 +162,23 @@ infixr 5 #>   -- prepend
 infixl 4 <#   -- append
 
 
--- | 'Write's are built on top of 'Poke's by additionally keeping track
--- of the maximal number of bytes that are written when executing the
--- underlying 'Poke'.
+-- | Encodings of Haskell values that can be implemented by writing a
+-- bounded-length sequence of bytes directly to memory.
 data Write a = Write {-# UNPACK #-} !Int (a -> Poke)
 
--- | Get the raw encoding function encapsulated by the 'Write'.
+-- | Get the raw encoding function encapsulated by a 'Write'.
 {-# INLINE getPoke #-}
 getPoke :: Write a -> a -> Poke
 getPoke (Write _ f) = f
 
--- | The maximal number of bytes written by this 'Write'.
+-- | The maximal number of bytes written by a 'Write'.
 {-# INLINE getBound #-}
 getBound :: Write a -> Int
 getBound (Write b _) = b
 
 
--- | Run a 'Write' to encode a value starting from the given address and return
--- the address of the next free byte.
+-- | Run a 'Write' to encode a value starting from the given pointer and return
+-- the pointer of the next free byte.
 {-# INLINE runWrite #-}
 runWrite :: Write a -> a -> Ptr Word8 -> IO (Ptr Word8)
 runWrite (Write _ f) = runPoke . f
@@ -175,17 +197,29 @@ addBounds w1 w2 = getBound w1 + getBound w2
 -- Unsafe creation of writes
 ----------------------------
 
+-- | Create a 'Write' from a bound on the maximal number of bytes written and
+-- an implementation of the encoding scheme.
+--
+-- /Precondition:/ the bound must be valid for the implementation of the
+-- encoding scheme.
 {-# INLINE boundedWrite #-}
 boundedWrite :: Int          -- ^ Maximal number of bytes written
-             -> (a -> Poke)  -- ^ Implementation of encoding scheme
+             -> (a -> Poke)  -- ^ Implementation of the encoding scheme
              -> Write a      
 boundedWrite = Write
 
+-- | Create a 'Write' from an 'IO' action that writes a fixed number of bytes.
+--
+-- /Preconditions:/ the given number of the written bytes must agree precisely
+-- with the actual implementation (analogously to 'pokeIO').
 {-# INLINE exactWrite #-}
-exactWrite :: Int -> (a -> Ptr Word8 -> IO ()) -> Write a
+exactWrite :: Int                       -- ^ Number of bytes written
+           -> (a -> Ptr Word8 -> IO ()) -- ^ 'IO' action writing exactly that
+                                        -- many bytes from the given start pointer
+           -> Write a
 exactWrite size io = Write size (pokeN size . io)
 
--- | Write a storable value.
+-- | 'Write' a 'Storable' value using 'poke'.
 {-# INLINE writeStorable #-}
 writeStorable :: forall a. Storable a => Write a
 writeStorable = 
@@ -195,40 +229,65 @@ writeStorable =
 -- Safe combinators
 -------------------
 
+-- | 'Write's are cofunctors. The following laws hold.
+--
+-- > w #. id = w
+-- > w #. (f . g) = w #. f #. g
+--
+-- A typical use of 'comapWrite' is the definition of 
+--
+-- > writeInt32 = writeWord32 #. fromIntegral@
+--
+-- Once the the base library provides a Cofunctor class, we will make 'Write's an instance of it.
 {-# INLINE comapWrite #-}
 comapWrite :: (b -> a) -> Write a -> Write b
 comapWrite g (Write b f) = Write b (f . g)
 
+-- | An infix synonym for 'comapWrite'.
 {-# INLINE (#.) #-}
 (#.) :: Write a -> (b -> a) -> Write b
 (#.) = flip comapWrite
 
+-- | Prepend the writing of a fixed sequence of bytes to a 'Write'.
+--
+-- > showWrite ((utf8, '0') #> (utf8, 'x') #> utf8HexLower) (26 :: Word16) = "0x001a"
+--
 {-# INLINE prepend #-}
 prepend :: (Write a, a) -> Write b -> Write b
 prepend (w1, x) w2 = write2 w1 w2 #. (\y -> (x, y))
 
-{-# INLINE append #-}
-append :: Write a -> (Write b, b) -> Write a
-append w1 (w2, y) = write2 w1 w2 #. (\x -> (x, y))
-
-{-# INLINE (<#) #-}
-(<#) :: Write a -> (Write b, b) -> Write a
-(<#) = append
-
+-- | An infix synonym for 'prepend'.
 {-# INLINE (#>) #-}
 (#>) :: (Write a, a) -> Write b -> Write b
 (#>) = prepend
 
--- | @writeNothing x@ never writes anything to memory.
+
+-- | Append the writing of a fixed sequence of bytes to a 'Write'.
+--
+-- > showWrite (utf8HexLower <# (utf8, '\'')) (26 :: Word16) = "001a'"
+--
+{-# INLINE append #-}
+append :: Write a -> (Write b, b) -> Write a
+append w1 (w2, y) = write2 w1 w2 #. (\x -> (x, y))
+
+-- | An infix synonym for 'append'.
+{-# INLINE (<#) #-}
+(<#) :: Write a -> (Write b, b) -> Write a
+(<#) = append
+
+-- | Write nothing. The encoding scheme of 'writeNothing' does not inspect its
+-- argument at all. Therefore
+--
+-- > showWrite writeNothing undefined = ""
+--
 {-# INLINE writeNothing #-}
 writeNothing :: Write a
 writeNothing = Write 0 mempty
 
--- | @writeIf p wTrue wFalse x@ creates a 'Write' with a 'Poke' equal to @wTrue
--- x@, if @p x@ and equal to @wFalse x@ otherwise. The bound of this new
--- 'Write' is the maximum of the bounds for either 'Write'. This yields a data
--- independent bound, if the bound for @wTrue@ and @wFalse@ is already data
--- independent.
+-- | Conditionally select a 'Write'.
+--
+-- > asciiDrop = writeIf (< '\128') unsafeAscii writeNothing
+--
 {-# INLINE writeIf #-}
 writeIf :: (a -> Bool) -> Write a -> Write a -> Write a
 writeIf p wTrue wFalse = 
@@ -236,14 +295,14 @@ writeIf p wTrue wFalse =
   where
     f x = Poke $ if p x then runWrite wTrue x else runWrite wFalse x
 
+-- | Select a 'Write' depending on a 'Maybe' value.
 {-# INLINE writeMaybe #-}
-writeMaybe :: Write ()
-           -> Write a
-           -> Write (Maybe a)
-writeMaybe wNothing wJust =
+writeMaybe :: (Write a, a) -> Write b -> Write (Maybe b)
+writeMaybe (wNothing, x) wJust =
     Write (max (getBound wNothing) (getBound wJust))
-          (Poke . maybe (runWrite wNothing ()) (runWrite wJust))
+          (Poke . maybe (runWrite wNothing x) (runWrite wJust))
 
+-- | Select a 'Write' depending on an 'Either' value.
 {-# INLINE writeEither #-}
 writeEither :: Write a
             -> Write b
@@ -252,6 +311,10 @@ writeEither wLeft wRight =
     Write (maxBound wLeft wRight)
           (Poke . either (runWrite wLeft) (runWrite wRight))
 
+-- | Sequentially compose two 'Write's.
+--
+-- > showWrite (write2 utf8 utf8) ('x','y') = "xy"
+--
 {-# INLINE write2 #-}
 write2 :: Write a -> Write b -> Write (a, b)
 write2 w1 w2 =
@@ -259,6 +322,7 @@ write2 w1 w2 =
   where
     f (a, b) = getPoke w1 a `mappend` getPoke w2 b
 
+-- | Sequentially compose three 'Write's.
 {-# INLINE write3 #-}
 write3 :: Write a -> Write b -> Write c -> Write (a, b, c)
 write3 w1 w2 w3 =
@@ -267,6 +331,7 @@ write3 w1 w2 w3 =
     f (a, b, c) = getPoke w1 a `mappend` getPoke w2 b 
                                  `mappend` getPoke w3 c
 
+-- | Sequentially compose four 'Write's.
 {-# INLINE write4 #-}
 write4 :: Write a -> Write b -> Write c -> Write d -> Write (a, b, c, d)
 write4 w1 w2 w3 w4 =
@@ -275,6 +340,8 @@ write4 w1 w2 w3 w4 =
     f (a, b, c, d) = getPoke w1 a `mappend` getPoke w2 b 
                                     `mappend` getPoke w3 c
                                     `mappend` getPoke w4 d
+
+-- | Sequentially compose eight 'Write's.
 {-# INLINE write8 #-}
 write8 :: Write a1 -> Write a2 -> Write a3 -> Write a4
        -> Write a5 -> Write a6 -> Write a7 -> Write a8

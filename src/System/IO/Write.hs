@@ -53,17 +53,26 @@ module System.IO.Write (
   , (#>)
   , append
   , (<#)
+ 
+  -- * Writing Unicode characters
+  , module System.IO.Write.Char.Ascii
+  , module System.IO.Write.Char.Utf8
 
   -- * Writing fixed-width integers
   , module System.IO.Write.Int
   , module System.IO.Write.Word
-  
+
   -- -- * Writing floating point numbers
   -- , module System.IO.Write.Floating
 
   ) where
 
 import System.IO.Write.Internal
+import System.IO.Write.Char.Ascii
+import System.IO.Write.Char.Utf8
 import System.IO.Write.Word
 import System.IO.Write.Int
 -- import System.IO.Write.Floating
+--
+import System.IO.Write.Test
+import Foreign

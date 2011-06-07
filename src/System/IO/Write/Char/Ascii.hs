@@ -34,8 +34,6 @@ import System.IO.Write.Internal
 import System.IO.Write.Internal.Base16
 import System.IO.Write.Word
 
-import System.IO.Write.Test 
-
 -- | Write a 'Char' with a Unicode codepoint less than 128 using the ASCII
 -- encoding. This function is unsafe because, for codepoints greater or equal to
 -- 128, no guarantee on the written byte is given except that exactly one byte
