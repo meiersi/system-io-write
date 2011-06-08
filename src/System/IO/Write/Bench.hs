@@ -9,7 +9,11 @@
 --
 -- Support for benchmarking writes.
 --
-module System.IO.Write.Bench where
+module System.IO.Write.Bench (
+    writeReplicated
+  , writeInts
+  , writeList
+  ) where
 
 import System.IO.Write.Internal
 
@@ -31,6 +35,23 @@ writeReplicated n0 w x
   where
     loop 0 !op = return op
     loop n !op = runWrite w x op >>= loop (n - 1)
+
+-- | Execute a 'Write' on each value of bounded-length prefix of a list. The
+-- output is written consecutively into a single array to incorporate
+-- to-memory-bandwidth in the measurement.
+{-# INLINE writeInts #-}
+writeInts :: Int       -- ^ Maximal 'Int' to write
+          -> Write Int -- ^ 'Write' to execute
+          -> IO ()     -- ^ 'IO' action to benchmark
+writeInts n0 w
+  | n0 <= 0   = return ()
+  | otherwise = do
+      fpbuf <- mallocForeignPtrBytes (n0 * getBound w)
+      withForeignPtr fpbuf (loop n0) >> return ()
+  where
+    loop !n !op
+      | n <= 0    = return op
+      | otherwise = runWrite w n op >>= loop (n - 1)
 
 
 -- | Execute a 'Write' on each value of bounded-length prefix of a list. The

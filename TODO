@@ -1,3 +1,5 @@
 - implement conditional instances for Int and Word depending on host-endiannes
   and host-bit-width
 
+- implement 64-bit hex encoding more cleverly; i.e., use only one of the
+  expensive 64-bit shifts.

@@ -23,162 +23,113 @@ import System.IO.Write.Bench
 ------------------------------------------------------------------------------
 
 nRepl :: Int
-nRepl = 1000
-
--- Inline all these lists to ensure a low memory residency. Otherwise, 
--- comparing benchmarks becomes harder as GC takes longer the more benchmarks
--- have been run.
-
-{-# INLINE word8s #-}
-word8s :: [Word8]
-word8s = map fromIntegral $ [(0::Word)..]
-
-{-# INLINE word16s #-}
-word16s :: [Word16]
-word16s = map fromIntegral $ [(0::Word)..]
-
-{-# INLINE word32s #-}
-word32s :: [Word32]
-word32s = map fromIntegral $ [(0::Word)..]
-
-{-# INLINE word64s #-}
-word64s :: [Word64]
-word64s = map fromIntegral $ [(0::Word)..]
-
-{-# INLINE words #-}
-words :: [Word]
-words = map fromIntegral $ [(0::Word)..]
-
-{-# INLINE int8s #-}
-int8s :: [Int8]
-int8s = map fromIntegral $ [(0::Int)..]
-
-{-# INLINE int16s #-}
-int16s :: [Int16]
-int16s = map fromIntegral $ [(0::Int)..]
-
-{-# INLINE int32s #-}
-int32s :: [Int32]
-int32s = map fromIntegral $ [(0::Int)..]
-
-{-# INLINE int64s #-}
-int64s :: [Int64]
-int64s = map fromIntegral $ [(0::Int)..]
-
-{-# INLINE ints #-}
-ints :: [Int]
-ints = map fromIntegral $ [(0::Int)..]
-
-{-# INLINE chars #-}
-chars :: [Char]
-chars = map toEnum $ [(0::Int)..]
+nRepl = 10000
 
 {-# INLINE benchmark #-}
-benchmark :: String -> Write a -> [a] -> Benchmark
-benchmark name w xs = 
-  bench (name ++" (" ++ show nRepl ++ ")") $ writeList nRepl w xs
+benchmark :: String -> Write Int -> Benchmark
+benchmark name w = 
+  bench (name ++" (" ++ show nRepl ++ ")") $ writeInts nRepl w
 
 main :: IO ()
 main = Criterion.Main.defaultMain 
   [ bgroup "Char"
-    [ benchmark "utf8"             utf8               chars
-      -- cannot benchmark 'ascii' on this data, as it would error
-    , benchmark "asciiUnsafe"      unsafeAscii        chars
-    , benchmark "asciiDrop"        asciiDrop          chars
-    , benchmark "asciiReplace ' '" (asciiReplace ' ') chars
+    [ benchmark "utf8"             $ utf8             #. toEnum
+    , benchmark "asciiUnsafe"      $ unsafeAscii      #. toEnum
+    , benchmark "asciiDrop"        $ asciiDrop        #. toEnum
+    , benchmark "asciiReplace ' '" $ asciiReplace ' ' #. toEnum
     ]
   , bgroup "Word"
     [ bgroup "HostEndian"
-      [ benchmark "8"    word8      word8s
-      , benchmark "16"   word16Host word16s
-      , benchmark "32"   word32Host word32s
-      , benchmark "64"   word64Host word64s
-      , benchmark "Host" wordHost   words
+      [ benchmark "8"    $ word8      #. fromIntegral
+      , benchmark "16"   $ word16Host #. fromIntegral
+      , benchmark "32"   $ word32Host #. fromIntegral
+      , benchmark "64"   $ word64Host #. fromIntegral
+      , benchmark "Host" $ wordHost   #. fromIntegral
       ]
     , bgroup "BigEndian"
-      [ benchmark "16"   word16BE word16s
-      , benchmark "32"   word32BE word32s
-      , benchmark "64"   word64BE word64s
+      [ benchmark "16"   $ word16BE #. fromIntegral
+      , benchmark "32"   $ word32BE #. fromIntegral
+      , benchmark "64"   $ word64BE #. fromIntegral
       ]
     , bgroup "LittleEndian"
-      [ benchmark "16"   word16LE word16s
-      , benchmark "32"   word32LE word32s
-      , benchmark "64"   word64LE word64s
+      [ benchmark "16"   $ word16LE #. fromIntegral
+      , benchmark "32"   $ word32LE #. fromIntegral
+      , benchmark "64"   $ word64LE #. fromIntegral
       ]
     , bgroup "utf8HexUpper"
-      [ benchmark "8"    utf8HexUpper word8s
-      , benchmark "16"   utf8HexUpper word16s
-      , benchmark "32"   utf8HexUpper word32s
-      , benchmark "64"   utf8HexUpper word64s
-      , benchmark "Host" utf8HexUpper words
+      [ benchmark "8"    $ (utf8HexUpper :: Write Word8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexUpper :: Write Word16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexUpper :: Write Word32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexUpper :: Write Word64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexUpper :: Write Word) #. fromIntegral
       ]
     , bgroup "utf8HexUpperNoLead"
-      [ benchmark "8"    utf8HexUpperNoLead word8s
-      , benchmark "16"   utf8HexUpperNoLead word16s
-      , benchmark "32"   utf8HexUpperNoLead word32s
-      , benchmark "64"   utf8HexUpperNoLead word64s
-      , benchmark "Host" utf8HexUpperNoLead words
+      [ benchmark "8"    $ (utf8HexUpperNoLead :: Write Word8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexUpperNoLead :: Write Word16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexUpperNoLead :: Write Word32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexUpperNoLead :: Write Word64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexUpperNoLead :: Write Word) #. fromIntegral
       ]
     , bgroup "utf8HexLower"
-      [ benchmark "8"    utf8HexLower word8s
-      , benchmark "16"   utf8HexLower word16s
-      , benchmark "32"   utf8HexLower word32s
-      , benchmark "64"   utf8HexLower word64s
-      , benchmark "Host" utf8HexLower words
+      [ benchmark "8"    $ (utf8HexLower :: Write Word8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexLower :: Write Word16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexLower :: Write Word32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexLower :: Write Word64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexLower :: Write Word) #. fromIntegral
       ]
     , bgroup "utf8HexLowerNoLead"
-      [ benchmark "8"    utf8HexLowerNoLead word8s
-      , benchmark "16"   utf8HexLowerNoLead word16s
-      , benchmark "32"   utf8HexLowerNoLead word32s
-      , benchmark "64"   utf8HexLowerNoLead word64s
-      , benchmark "Host" utf8HexLowerNoLead words
+      [ benchmark "8"    $ (utf8HexLowerNoLead :: Write Word8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexLowerNoLead :: Write Word16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexLowerNoLead :: Write Word32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexLowerNoLead :: Write Word64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexLowerNoLead :: Write Word) #. fromIntegral
       ]
     ]
   , bgroup "Int"
     [ bgroup "HostEndian"
-      [ benchmark "8"    int8      int8s
-      , benchmark "16"   int16Host int16s
-      , benchmark "32"   int32Host int32s
-      , benchmark "64"   int64Host int64s
-      , benchmark "Host" intHost   ints
+      [ benchmark "8"    $ int8      #. fromIntegral
+      , benchmark "16"   $ int16Host #. fromIntegral
+      , benchmark "32"   $ int32Host #. fromIntegral
+      , benchmark "64"   $ int64Host #. fromIntegral
+      , benchmark "Host" $ intHost
       ]
     , bgroup "BigEndian"
-      [ benchmark "16"   int16BE int16s
-      , benchmark "32"   int32BE int32s
-      , benchmark "64"   int64BE int64s
+      [ benchmark "16"   $ int16BE #. fromIntegral
+      , benchmark "32"   $ int32BE #. fromIntegral
+      , benchmark "64"   $ int64BE #. fromIntegral
       ]
     , bgroup "LittleEndian"
-      [ benchmark "16"   int16LE int16s
-      , benchmark "32"   int32LE int32s
-      , benchmark "64"   int64LE int64s
+      [ benchmark "16"   $ int16LE #. fromIntegral
+      , benchmark "32"   $ int32LE #. fromIntegral
+      , benchmark "64"   $ int64LE #. fromIntegral
       ]
     , bgroup "utf8HexUpper"
-      [ benchmark "8"    utf8HexUpper int8s
-      , benchmark "16"   utf8HexUpper int16s
-      , benchmark "32"   utf8HexUpper int32s
-      , benchmark "64"   utf8HexUpper int64s
-      , benchmark "Host" utf8HexUpper ints
+      [ benchmark "8"    $ (utf8HexUpper :: Write Int8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexUpper :: Write Int16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexUpper :: Write Int32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexUpper :: Write Int64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexUpper :: Write Int)
       ]
     , bgroup "utf8HexUpperNoLead"
-      [ benchmark "8"    utf8HexUpperNoLead int8s
-      , benchmark "16"   utf8HexUpperNoLead int16s
-      , benchmark "32"   utf8HexUpperNoLead int32s
-      , benchmark "64"   utf8HexUpperNoLead int64s
-      , benchmark "Host" utf8HexUpperNoLead ints
+      [ benchmark "8"    $ (utf8HexUpperNoLead :: Write Int8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexUpperNoLead :: Write Int16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexUpperNoLead :: Write Int32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexUpperNoLead :: Write Int64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexUpperNoLead :: Write Int)
       ]
     , bgroup "utf8HexLower"
-      [ benchmark "8"    utf8HexLower int8s
-      , benchmark "16"   utf8HexLower int16s
-      , benchmark "32"   utf8HexLower int32s
-      , benchmark "64"   utf8HexLower int64s
-      , benchmark "Host" utf8HexLower ints
+      [ benchmark "8"    $ (utf8HexLower :: Write Int8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexLower :: Write Int16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexLower :: Write Int32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexLower :: Write Int64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexLower :: Write Int)
       ]
     , bgroup "utf8HexLowerNoLead"
-      [ benchmark "8"    utf8HexLowerNoLead int8s
-      , benchmark "16"   utf8HexLowerNoLead int16s
-      , benchmark "32"   utf8HexLowerNoLead int32s
-      , benchmark "64"   utf8HexLowerNoLead int64s
-      , benchmark "Host" utf8HexLowerNoLead ints
+      [ benchmark "8"    $ (utf8HexLowerNoLead :: Write Int8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexLowerNoLead :: Write Int16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexLowerNoLead :: Write Int32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexLowerNoLead :: Write Int64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexLowerNoLead :: Write Int)
       ]
     ]
   ]
