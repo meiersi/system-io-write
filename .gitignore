@@ -3,6 +3,6 @@
 
 dist
 
-bench/Hex
+bench/BenchAll
 
 test/TestAll

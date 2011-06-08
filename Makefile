@@ -14,21 +14,17 @@ GHCI = ghci-6.12.3
 
 ## All benchmarks
 ################# 
-bench-all: bench-hex
+
+bench-all:
+	$(GHC) --make -O2 -fforce-recomp -main-is BenchAll bench/BenchAll.hs
+	./bench/BenchAll --resamples 10000
+
+core-all:
+	ghc-core -- --make -O2 -fforce-recomp -main-is BenchAll bench/BenchAll.hs
 
 clean-bench-all:
 	rm -f bench/*.o bench/*.hi
 
-## Individual benchmarks
-########################
-
-# hexadeximal encoding
-bench-hex:
-	$(GHC) --make -O2 -fforce-recomp -main-is Hex bench/Hex.hs
-	./bench/Hex --resamples 10000
-
-core-hex:
-	ghc-core -- --make -O2 -fforce-recomp -main-is Hex bench/Hex.hs
 
 ##############################################################################
 ## Testing
