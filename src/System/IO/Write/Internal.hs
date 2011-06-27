@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables, CPP, BangPatterns, MonoPatBinds #-}
+{-# OPTIONS_HADDOCK hide #-}
 -- |
 -- Copyright   : 2010, 2011 Simon Meier, 2010 Jasper van der Jeugt
 -- License     : BSD3-style (see LICENSE)
@@ -7,23 +8,11 @@
 -- Stability   : experimental
 -- Portability : tested on GHC only
 --
--- This library provides a compile-time abstraction of writing a bounded number
--- of bytes to memory; i.e., all functions in this module are intended to be
--- inlined at compile time. The main use of this /write abstraction/ is to
--- share the implementation of encodings of Haskell values where the maximal
--- number of bytes to be written per value is statically known.
--- 
--- This library only provides types and combinators for defining writes. A
--- number of actual writes is provided by the @encoding-writes@ library. They
--- are used together with the @Builder@ type from the @bytestring@ library to
--- provide builders for a variety of encodings in the @encoding-builders@
--- library.
--- 
 -- A word of caution: if you just need to serialize some data in some standard
--- encoding format, then use the builders provided in the @encoding-builders@
--- library. They provide an easy to use IO-free interface, that gives you very
--- good performance for most use cases. If you need to write your own encoding,
--- then be aware that
+-- encoding format, then use the builders provided by the 'bytestring' library.
+-- They provide an easy to use IO-free interface, that gives you very good
+-- performance for most use cases. If you need to write your own encoding, then
+-- be aware that
 --
 --  1. compile-time abstractions can result in rather inefficient code, if used
 --     the wrong way, and
@@ -31,12 +20,12 @@
 --  2. you are writing code with /all saftey belts off/; i.e., 
 --     /this is the code that makes your application vulnerable to buffer-overflow
 --     attacks!/
--- .
--- Note that if your encoding is not yet supported by @encoding-builders@, but
--- it is standardized, then I'm very happy to accept patches for the
--- @encoding-builders@ library.
+-- 
+-- Note that if your encoding is a standard encoding of a standard Haskell
+-- value, then I'm very happy to accept patches. Depending on the encoding it
+-- will be integrated in the 'bytestring' library itself or the planned
+-- 'encoding-builders' library.
 --
--- /TODO: Improve documentation of module contents./
 module System.IO.Write.Internal (
   -- * Poking a buffer
   
@@ -276,7 +265,7 @@ append w1 (w2, y) = write2 w1 w2 #. (\x -> (x, y))
 (<#) = append
 
 -- | Write nothing. The encoding scheme of 'writeNothing' does not inspect its
--- argument at all. Therefore
+-- argument at all; i.e.,
 --
 -- > showWrite writeNothing undefined = ""
 --

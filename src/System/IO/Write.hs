@@ -9,34 +9,16 @@
 --
 -- This library provides a compile-time abstraction of writing a bounded number
 -- of bytes to memory; i.e., all functions in this module are intended to be
--- inlined at compile time. The main use of this /write abstraction/ is to
--- share the implementation of encodings of Haskell values where the maximal
--- number of bytes to be written per value is statically known.
--- 
--- This library only provides types and combinators for defining writes. A
--- number of actual writes is provided by the @encoding-writes@ library. They
--- are used together with the @Builder@ type from the @bytestring@ library to
--- provide builders for a variety of encodings in the @encoding-builders@
--- library.
--- 
--- A word of caution: if you just need to serialize some data in some standard
--- encoding format, then use the builders provided in the @encoding-builders@
--- library. They provide an easy to use IO-free interface, that gives you very
--- good performance for most use cases. If you need to write your own encoding,
--- then be aware that
+-- inlined at compile time. The main use 'Write's is to share the
+-- implementation of encodings of Haskell values where the maximal number of
+-- bytes written is /independent/ of the value being encoded.
 --
---  1. compile-time abstractions can result in rather inefficient code, if used
---     the wrong way, and
+-- Apart from combinators for defining 'Write's, this library provides a number
+-- of 'Write's abstracting standard encoding of standard Haskell values. They
+-- are used in the 'bytestring' library to provide the implementations of the
+-- primitive 'Builder's. See the module @Data.ByteString.Builder.Write@ in the
+-- 'bytestring' library for an example of how to use 'Write's.
 --
---  2. you are writing code with /all safety belts off/; i.e., 
---     /this is the code that makes your application vulnerable to buffer-overflow
---     attacks!/
--- .
--- Note that if your encoding is not yet supported by @encoding-builders@, but
--- it is standardized, then I'm very happy to accept patches for the
--- @encoding-builders@ library.
---
--- /TODO: Improve documentation of module contents./
 module System.IO.Write (
   -- * The Write type
     Write

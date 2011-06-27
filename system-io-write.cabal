@@ -45,12 +45,12 @@ Description:
                      .
                      Note that using Writes is no guarantee for efficiency.
                      They can easily be used in ways that result in bad
-                     performance.  The 'System.IO.Write.Bench' module helps you
+                     performance.  The "System.IO.Write.Bench" module helps you
                      with benchmarking your Writes.  Moreover, if you implement
                      a Write using the unsafe Write API, then all safety belts
                      are off.  You are writing code that may lead to the next
                      buffer overflow attack on a Haskell application.  The
-                     'System.IO.Write.Test' module supports you in getting some
+                     "System.IO.Write.Test" module supports you in getting some
                      safety back by testing your Writes thoroughly.
 
 Author:              Simon Meier, Jasper Van der Jeugt
