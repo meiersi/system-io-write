@@ -8,32 +8,32 @@
 -- Stability   : experimental
 -- Portability : non-portable (uses unsafeCoerce)
 --
--- 'Write's for encoding floating point numbers represented as 'Float' or
+-- 'Encoding's for encoding floating point numbers represented as 'Float' or
 -- 'Double' values using big-endian, little-endian, and host-endian encodings.
 --
 -- FIXME: Ensure that this module is only compiled on compilers where its use
 -- is safe.
 --
-module System.IO.Write.Floating
+module Codec.Bounded.Encoding.Floating
     ( 
 
-    -- * Big-endian writes
+    -- * Big-endian encodings
       floatBE
     , doubleBE
 
-    -- * Little-endian writes
+    -- * Little-endian encodings
     , floatLE
     , doubleLE
 
-    -- * Host-endian writes
+    -- * Host-endian encodings
     , floatHost
     , doubleHost
 
     ) where
 
 
-import System.IO.Write.Internal (Write, writeStorable, (#.) )
-import System.IO.Write.Word     (word32BE, word32LE, word64BE, word64LE)
+import Codec.Bounded.Encoding.Internal (Encoding, writeStorable, (#.) )
+import Codec.Bounded.Encoding.Word     (word32BE, word32LE, word64BE, word64LE)
 
 import Foreign (Word32, Word64)
 
@@ -69,37 +69,37 @@ coerceFloatToWord32 = undefined
 coerceDoubleToWord64 :: Double -> Word64
 coerceDoubleToWord64 = undefined
 
--- | Write a 'Float' in big endian format.
+-- | Encoding a 'Float' in big endian format.
 {-# INLINE floatBE #-}
-floatBE :: Write Float
+floatBE :: Encoding Float
 floatBE = word32BE #. coerceFloatToWord32
 
--- | Write a 'Float' in little endian format.
+-- | Encoding a 'Float' in little endian format.
 {-# INLINE floatLE #-}
-floatLE :: Write Float
+floatLE :: Encoding Float
 floatLE = word32LE #. coerceFloatToWord32
 
--- | Write a 'Double' in big endian format.
+-- | Encoding a 'Double' in big endian format.
 {-# INLINE doubleBE #-}
-doubleBE :: Write Double
+doubleBE :: Encoding Double
 doubleBE = word64BE #. coerceDoubleToWord64
 
--- | Write a 'Double' in little endian format.
+-- | Encoding a 'Double' in little endian format.
 {-# INLINE doubleLE #-}
-doubleLE :: Write Double
+doubleLE :: Encoding Double
 doubleLE = word64LE #. coerceDoubleToWord64
 
 
 
--- | Write a 'Float' in native host order and host endianness. Values written
+-- | Encoding a 'Float' in native host order and host endianness. Values written
 -- this way are not portable to different endian machines, without conversion.
 --
 {-# INLINE floatHost #-}
-floatHost :: Write Float
+floatHost :: Encoding Float
 floatHost = writeStorable
 
--- | Write a 'Double' in native host order and host endianness.
+-- | Encoding a 'Double' in native host order and host endianness.
 {-# INLINE doubleHost #-}
-doubleHost :: Write Double
+doubleHost :: Encoding Double
 doubleHost = writeStorable
 

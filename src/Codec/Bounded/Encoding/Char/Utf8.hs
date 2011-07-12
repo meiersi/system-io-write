@@ -6,9 +6,9 @@
 -- Stability   : experimental
 -- Portability : tested on GHC only
 --
--- 'Write's to handle UTF-8 encoding of characters. 
+-- UTF-8 encoding of characters. 
 --
-module System.IO.Write.Char.Utf8
+module Codec.Bounded.Encoding.Char.Utf8
     ( 
       -- * UTF-8 encoding of single characters
       utf8
@@ -23,14 +23,14 @@ module System.IO.Write.Char.Utf8
 import Foreign
 import Data.Char (ord)
 
-import System.IO.Write.Internal
-import System.IO.Write.Char.Ascii
+import Codec.Bounded.Encoding.Internal
+import Codec.Bounded.Encoding.Char.Ascii
 
--- | Write a 'Char' using the UTF-8 encoding.
+-- | Encode a 'Char' using the UTF-8 encoding.
 --
 {-# INLINE utf8 #-}
-utf8 :: Write Char
-utf8 = boundedWrite 4 (encodeCharUtf8 f1 f2 f3 f4)
+utf8 :: Encoding Char
+utf8 = boundedEncoding 4 (encodeCharUtf8 f1 f2 f3 f4)
   where
     f1 x1          = pokeN 1 $ \op -> do pokeByteOff op 0 x1
 
@@ -84,40 +84,40 @@ encodeCharUtf8 f1 f2 f3 f4 c = case ord c of
 -- | Fixed-width hexadecimal encoding with lower-case characters encoded using
 -- the UTF-8 encoding.
 --
--- > showWrite utf8HexLower (26 :: Word16) = "001a"
+-- > showEncoding utf8HexLower (26 :: Word16) = "001a"
 --
 -- Note that we exploit that the UTF-8 encoding coincides with the ASCII
 -- encoding on codepoints below 128. This is the origin of the
--- 'AsciiHexWritable' class constraint.
+-- 'AsciiHexEncodable' class constraint.
 --
 {-# INLINE utf8HexLower #-}
-utf8HexLower :: AsciiHexWritable a => Write a
+utf8HexLower :: AsciiHexEncodable a => Encoding a
 utf8HexLower = asciiHexLower
 
 -- | Fixed-width hexadecimal encoding with upper-case characters encoded using
 -- the UTF-8 encoding.
 --
--- > showWrite utf8HexUpper (26 :: Word16) = "001A"
+-- > showEncoding utf8HexUpper (26 :: Word16) = "001A"
 --
 {-# INLINE utf8HexUpper #-}
-utf8HexUpper :: AsciiHexWritable a => Write a
+utf8HexUpper :: AsciiHexEncodable a => Encoding a
 utf8HexUpper = asciiHexUpper
 
 -- | Hexadecimal encoding with no leading zeros and lower-case characters
 -- encoded using the UTF-8 encoding.
 --
--- > showWrite utf8HexLowerNoLead (26 :: Word16) = "1a"
+-- > showEncoding utf8HexLowerNoLead (26 :: Word16) = "1a"
 --
 {-# INLINE utf8HexLowerNoLead #-}
-utf8HexLowerNoLead :: AsciiHexWritable a => Write a
+utf8HexLowerNoLead :: AsciiHexEncodable a => Encoding a
 utf8HexLowerNoLead = asciiHexLowerNoLead
                   
 -- | Hexadecimal encoding with  no leading zeros and upper-case characters
 -- encoded using the UTF-8 encoding.
 --
--- > showWrite utf8HexUpperNoLead (26 :: Word16) = "1A"
+-- > showEncoding utf8HexUpperNoLead (26 :: Word16) = "1A"
 --
 {-# INLINE utf8HexUpperNoLead #-}
-utf8HexUpperNoLead :: AsciiHexWritable a => Write a
+utf8HexUpperNoLead :: AsciiHexEncodable a => Encoding a
 utf8HexUpperNoLead = asciiHexUpperNoLead
 

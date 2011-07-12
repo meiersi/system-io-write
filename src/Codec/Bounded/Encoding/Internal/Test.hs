@@ -1,3 +1,4 @@
+{-# OPTIONS_HADDOCK hide #-}
 -- |
 -- Copyright   : (c) 2011 Simon Meier
 -- License     : BSD3-style (see LICENSE)
@@ -6,17 +7,17 @@
 -- Stability   : experimental
 -- Portability : tested on GHC only
 --
--- Testing the correctness of writes.
+-- Testing the correctness of bounded encodings. See the file 'test/TestAll.hs'
+-- for an example on how to use the functions provided here.
 -- 
-module System.IO.Write.Test (
-  -- * Testing writes
-    WriteFailure
-  , evalWrite
-  , showWrite
-  , testWrite
-  , cmpWrite
-  , cmpWrite_
-  , cmpWriteErr
+module Codec.Bounded.Encoding.Internal.Test (
+    EncodingFailure
+  , evalEncoding
+  , showEncoding
+  , testEncoding
+  , cmpEncoding
+  , cmpEncoding_
+  , cmpEncodingErr
 
   ) where
 
@@ -24,36 +25,36 @@ import Data.Maybe
 import Foreign
 import Numeric (showHex)
 
-import System.IO.Write.Internal
-import qualified System.IO.Write.Internal.Region as R
+import Codec.Bounded.Encoding.Internal
+import qualified Codec.Bounded.Encoding.Internal.Region as R
 
 ------------------------------------------------------------------------------
--- Testing Writes
+-- Testing Encodings
 ------------------------------------------------------------------------------
 
 -- Representing failures
 ------------------------
 
--- | A failure of a 'Write'.
-data WriteFailure = WriteFailure  String  WriteResult  WriteResult
+-- | A failure of an 'Encoding'.
+data EncodingFailure = EncodingFailure  String  EncodingResult  EncodingResult
        deriving( Eq )
 
-type WriteResult = ( [Word8]         -- full list
+type EncodingResult = ( [Word8]         -- full list
                    , [[Word8]]       -- split list
                    , [Ptr Word8] )   -- in-write pointers
 
-instance Show WriteFailure where
-    show (WriteFailure cause res1 res2) = unlines $
+instance Show EncodingFailure where
+    show (EncodingFailure cause res1 res2) = unlines $
             [ ""
-            , "Write violated post-condition: " ++ cause ++ "!"
+            , "Encoding violated post-condition: " ++ cause ++ "!"
             ] ++
             (map ("  " ++) $ lines $ unlines
                 [ "String based result comparison:"
-                , showWriteResult stringLine 1 res1
-                , showWriteResult stringLine 2 res2
+                , showEncodingResult stringLine 1 res1
+                , showEncodingResult stringLine 2 res2
                 , "Hex based result comparison:"
-                , showWriteResult hexLine 1 res1
-                , showWriteResult hexLine 2 res2 
+                , showEncodingResult hexLine 1 res1
+                , showEncodingResult hexLine 2 res2 
                 ] )
       where
         hexLine = concatMap (\x -> pad2 $ showHex x "")
@@ -63,7 +64,7 @@ instance Show WriteFailure where
 
         stringLine = map (toEnum . fromIntegral)
 
-        showWriteResult line i (full, splits, ptrs) =
+        showEncodingResult line i (full, splits, ptrs) =
             unlines $ zipWith (++) names 
                     $ map (quotes . line) (full : splits) ++ [ppPtrs]
           where
@@ -83,27 +84,27 @@ instance Show WriteFailure where
 -- Execution a write and testing its invariants
 -----------------------------------------------
 
--- | Execute a 'Write' and return the written list of bytes.
-evalWrite :: Write a -> a -> [Word8]
-evalWrite w x = case testWrite w x of
-    Left err  -> error $ "evalWrite: " ++ show err
+-- | Execute an 'Encoding' and return the written list of bytes.
+evalEncoding :: Encoding a -> a -> [Word8]
+evalEncoding w x = case testEncoding w x of
+    Left err  -> error $ "evalEncoding: " ++ show err
     Right res -> res
 
--- | Execute a 'Write' and return the written list of bytes interpreted as
+-- | Execute an 'Encoding' and return the written list of bytes interpreted as
 -- Unicode codepoints.
-showWrite :: Write a -> a -> [Char]
-showWrite w = map (toEnum . fromEnum) . evalWrite w
+showEncoding :: Encoding a -> a -> [Char]
+showEncoding w = map (toEnum . fromEnum) . evalEncoding w
 
--- | Execute a 'Write' twice and check that all post-conditions hold and the
+-- | Execute an 'Encoding' twice and check that all post-conditions hold and the
 -- written values are identical. In case of success, a list of the written
 -- bytes is returned.
-testWrite :: Write a -> a -> Either WriteFailure [Word8]
-testWrite = testWriteWith (5, 11)
+testEncoding :: Encoding a -> a -> Either EncodingFailure [Word8]
+testEncoding = testEncodingWith (5, 11)
 
-testWriteWith :: (Int, Int) -> Write a -> a -> Either WriteFailure [Word8]
-testWriteWith (slackF, slackB) w x = unsafePerformIO $ do
-    res1@(xs1, _, _) <- execWrite (replicate (slackF + slackB + bound) 40)
-    res2             <- execWrite (invert xs1)
+testEncodingWith :: (Int, Int) -> Encoding a -> a -> Either EncodingFailure [Word8]
+testEncodingWith (slackF, slackB) w x = unsafePerformIO $ do
+    res1@(xs1, _, _) <- execEncoding (replicate (slackF + slackB + bound) 40)
+    res2             <- execEncoding (invert xs1)
     return $ check res1 res2
   where
     bound = getBound w
@@ -119,27 +120,27 @@ testWriteWith (slackF, slackB) w x = unsafePerformIO $ do
       | not (ascending ptrs1)                       = err "pointers 1"
       -- test remaining properties of second write
       | not (ascending ptrs2)                       = err "pointers 2"
-      -- compare writes
+      -- compare encodings
       | frontSlack1      /= invert frontSlack2      = err "front over-write"
       | backSlack1       /= invert backSlack2       = err "back over-write"
-      | written1         /= written2                = err "different writes"
+      | written1         /= written2                = err "different encodings"
       | length reserved1 /= length reserved2        = err "different reserved lengths"
       | any (\(a,b) -> a /= complement b) untouched = err "different reserved usage"
       | otherwise                                   = Right written1
       where
         (_, untouched) = break (uncurry (/=)) $ zip reserved1 reserved2
-        err info = Left (WriteFailure info res1 res2)
+        err info = Left (EncodingFailure info res1 res2)
         ascending xs = all (uncurry (<=)) $ zip xs (tail xs)
     check _ _ = error "impossible"
 
     -- list-to-memory, run write, memory-to-list, report results
-    execWrite ys0 = do
+    execEncoding ys0 = do
       r@(buf, size) <- R.fromList ys0
       withForeignPtr buf $ \sp -> do
           let ep      = sp `plusPtr` size
               op      = sp `plusPtr` slackF
               opBound = op `plusPtr` bound
-          op' <- runWrite w x op
+          op' <- runEncoding w x op
           ys1 <- R.toList r
           touchForeignPtr buf
           -- cut the written list into: front slack, written, reserved, back slack
@@ -149,26 +150,26 @@ testWriteWith (slackF, slackB) w x = unsafePerformIO $ do
                       (reserved, backSlack) -> return $
                           (ys1, [frontSlack, written, reserved, backSlack], [sp, op, op', opBound, ep])
 
--- | Compare a 'Write' against a reference implementation. @cmpWrite f w x@
--- returns 'Nothing' iff the write @w@ and the function @f@ yield the same
+-- | Compare an 'Encoding' against a reference implementation. @cmpEncoding f e x@
+-- returns 'Nothing' iff the encoding @e@ and the function @f@ yield the same
 -- result when applied to @x@.
-cmpWrite :: (a -> [Word8]) -> Write a -> a 
-         -> Maybe (a, [Word8], Either WriteFailure [Word8])
-cmpWrite f w x 
+cmpEncoding :: (a -> [Word8]) -> Encoding a -> a 
+         -> Maybe (a, [Word8], Either EncodingFailure [Word8])
+cmpEncoding f w x 
   | result == Right (f x) = Nothing
   | otherwise             = Just (x, f x, result)
   where
-    result = testWrite w x
+    result = testEncoding w x
 
--- | Like 'cmpWrite', but return only whether the write yielded the same result
+-- | Like 'cmpEncoding', but return only whether the write yielded the same result
 -- as the reference implementation.
-cmpWrite_ :: Show a => (a -> [Word8]) -> Write a -> a -> Bool
-cmpWrite_ f w = isNothing . cmpWrite f w
+cmpEncoding_ :: Show a => (a -> [Word8]) -> Encoding a -> a -> Bool
+cmpEncoding_ f w = isNothing . cmpEncoding f w
 
--- | Like 'cmpWrite', but return an error using @error . show@. This is a
+-- | Like 'cmpEncoding', but return an error using @error . show@. This is a
 -- convenient way to get a QuickCheck test to output debug information about
 -- what went wrong.
-cmpWriteErr :: Show a => (a -> [Word8]) -> Write a -> a -> Bool
-cmpWriteErr f w = maybe True (error . show) . cmpWrite f w
+cmpEncodingErr :: Show a => (a -> [Word8]) -> Encoding a -> a -> Bool
+cmpEncodingErr f w = maybe True (error . show) . cmpEncoding f w
 
 

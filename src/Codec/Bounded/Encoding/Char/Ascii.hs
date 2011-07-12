@@ -7,64 +7,59 @@
 -- Stability   : experimental
 -- Portability : tested on GHC only
 --
--- 'Write's for the ASCII encoding of characters 
--- (cf. <http://tools.ietf.org/html/rfc20>).
+-- ASCII encoding of characters (cf. <http://tools.ietf.org/html/rfc20>).
 --
--- They are intended for constructing output in formats that explicitly
--- restrict the character encoding to 7-bit ASCII encoded characters. In all
--- other cases, a lossless Unicode encoding (e.g., "System.IO.Write.Char.Utf8")
--- is a better choice.
+-- The encodings provided in this module are intended for constructing output
+-- in formats that explicitly restrict the character encoding to 7-bit ASCII
+-- encoded characters. In all other cases, a lossless Unicode encoding (e.g.,
+-- "Codec.Bounded.Encoding.Char.Utf8") is a better choice.
 --
-module System.IO.Write.Char.Ascii
+module Codec.Bounded.Encoding.Char.Ascii
     ( 
       -- * ASCII encoding of single characters
       ascii
     , asciiReplace 
     , asciiDrop
-    , unsafeAscii
 
       -- * Hexadecimal encoding using ASCII encoded characters
-    , AsciiHexWritable(..)
+    , AsciiHexEncodable(..)
     ) where
 
 import Foreign
 import Data.Char
 
-import System.IO.Write.Internal
-import System.IO.Write.Internal.Base16
-import System.IO.Write.Word
+import Codec.Bounded.Encoding.Internal
+import Codec.Bounded.Encoding.Internal.Base16
+import Codec.Bounded.Encoding.Word
 
--- | Write a 'Char' with a Unicode codepoint less than 128 using the ASCII
--- encoding. This function is unsafe because, for codepoints greater or equal to
--- 128, no guarantee on the written byte is given except that exactly one byte
--- is written.
---
+-- | Encode a 'Char' with a Unicode codepoint less than 128 using the ASCII
+-- encoding. No check is done that the codepoint is less than 128.
 {-# INLINE unsafeAscii #-}
-unsafeAscii :: Write Char
+unsafeAscii :: Encoding Char
 unsafeAscii = word8 #. fromIntegral #. ord
 
--- | Write a 'Char' with a Unicode codepoint below 128 using the ASCII
+-- | Encode a 'Char' with a Unicode codepoint below 128 using the ASCII
 -- encoding. If the codepoint is greater or equal to 128, an error is thrown.
 --
 {-# INLINE ascii #-}
-ascii :: Write Char
+ascii :: Encoding Char
 ascii =
-    writeIf (< '\128') unsafeAscii (writeNothing #. err)
+    encodeIf (< '\128') unsafeAscii (emptyEncoding #. err)
   where
     err c = error $ "ascii: cannot encode `" ++ [c] ++ "' in ASCII"
 
--- | Write a 'Char' with a Unicode codepoint below 128 using the ASCII
+-- | Encode a 'Char' with a Unicode codepoint below 128 using the ASCII
 -- encoding. If the codepoint is greater or equal to 128, the replacement
 -- character is written. The replacement character must have a codepoint below
 -- 128, as otherwise an error is thrown.
 --
 {-# INLINE asciiReplace #-}
 asciiReplace :: Char       -- ^ Replacement character for codepoints greater or equal to 128
-             -> Write Char
+             -> Encoding Char
 asciiReplace replacement = 
-    writeIf (< '\128') unsafeAscii (ascii #. const replacement) 
+    encodeIf (< '\128') unsafeAscii (ascii #. const replacement) 
 
--- | Write a 'Char' with a Unicode codepoint below 128 using the ASCII encoding.
+-- | Encode a 'Char' with a Unicode codepoint below 128 using the ASCII encoding.
 -- If the codepoint is greater or equal to 128, nothing is written.
 --
 -- Note that dropping characters during encoding is often dangerous, as it may
@@ -73,8 +68,8 @@ asciiReplace replacement =
 -- or, if possible, use a lossless encoding like UTF-8.
 --
 {-# INLINE asciiDrop #-}
-asciiDrop :: Write Char
-asciiDrop = writeIf (< '\128') unsafeAscii writeNothing
+asciiDrop :: Encoding Char
+asciiDrop = encodeIf (< '\128') unsafeAscii emptyEncoding
 
 
 ------------------------------------------------------------------------------
@@ -82,29 +77,29 @@ asciiDrop = writeIf (< '\128') unsafeAscii writeNothing
 ------------------------------------------------------------------------------
 
 -- | Values that support a hexadecimal encoding with ASCII encoded characters.
-class AsciiHexWritable a where
+class AsciiHexEncodable a where
     -- | Fixed-width hexadecimal encoding with lower-case characters.
     --
-    -- > showWrite asciiHexLower (26 :: Word16) = "001a"
+    -- > showEncoding asciiHexLower (26 :: Word16) = "001a"
     --
-    asciiHexLower       :: Write a
+    asciiHexLower       :: Encoding a
     -- | Fixed-width hexadecimal encoding with upper-case characters.
     --
-    -- > showWrite asciiHexUpper (26 :: Word16) = "001A"
+    -- > showEncoding asciiHexUpper (26 :: Word16) = "001A"
     --
-    asciiHexUpper       :: Write a
+    asciiHexUpper       :: Encoding a
     -- | Hexadecimal encoding with upper-case characters and no leading zeros.
     --
-    -- > showWrite asciiHexLowerNoLead (26 :: Word16) = "1a"
+    -- > showEncoding asciiHexLowerNoLead (26 :: Word16) = "1a"
     --
-    asciiHexLowerNoLead :: Write a
+    asciiHexLowerNoLead :: Encoding a
     -- | Hexadecimal encoding with lower-case characters and no leading zeros.
     --
-    -- > showWrite asciiHexUpperNoLead (26 :: Word16) = "1A"
+    -- > showEncoding asciiHexUpperNoLead (26 :: Word16) = "1A"
     --
-    asciiHexUpperNoLead :: Write a
+    asciiHexUpperNoLead :: Encoding a
 #if WORD_SIZE_IN_BITS < 64
-instance AsciiHexWritable Word where
+instance AsciiHexEncodable Word where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -114,7 +109,7 @@ instance AsciiHexWritable Word where
     asciiHexLowerNoLead = asciiHexNoLead lowerTable
     asciiHexUpperNoLead = asciiHexNoLead upperTable
 
-instance AsciiHexWritable Int where
+instance AsciiHexEncodable Int where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -124,7 +119,7 @@ instance AsciiHexWritable Int where
     asciiHexLowerNoLead = asciiHexNoLead lowerTable
     asciiHexUpperNoLead = asciiHexNoLead upperTable
 #else
-instance AsciiHexWritable Word where
+instance AsciiHexEncodable Word where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -134,7 +129,7 @@ instance AsciiHexWritable Word where
     asciiHexLowerNoLead = asciiHexNoLead lowerTable
     asciiHexUpperNoLead = asciiHexNoLead upperTable
 
-instance AsciiHexWritable Int where
+instance AsciiHexEncodable Int where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -145,7 +140,7 @@ instance AsciiHexWritable Int where
     asciiHexUpperNoLead = asciiHexNoLead upperTable
 #endif
 
-instance AsciiHexWritable Word8 where
+instance AsciiHexEncodable Word8 where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -155,7 +150,7 @@ instance AsciiHexWritable Word8 where
     asciiHexLowerNoLead = word8HexNoLead lowerTable
     asciiHexUpperNoLead = word8HexNoLead upperTable
 
-instance AsciiHexWritable Word16 where
+instance AsciiHexEncodable Word16 where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -165,7 +160,7 @@ instance AsciiHexWritable Word16 where
     asciiHexLowerNoLead = asciiHexNoLead lowerTable
     asciiHexUpperNoLead = asciiHexNoLead upperTable
 
-instance AsciiHexWritable Word32 where
+instance AsciiHexEncodable Word32 where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -175,7 +170,7 @@ instance AsciiHexWritable Word32 where
     asciiHexLowerNoLead = asciiHexNoLead lowerTable
     asciiHexUpperNoLead = asciiHexNoLead upperTable
 
-instance AsciiHexWritable Word64 where
+instance AsciiHexEncodable Word64 where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -185,7 +180,7 @@ instance AsciiHexWritable Word64 where
     asciiHexLowerNoLead = asciiHexNoLead lowerTable
     asciiHexUpperNoLead = asciiHexNoLead upperTable
 
-instance AsciiHexWritable Int8 where
+instance AsciiHexEncodable Int8 where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -195,7 +190,7 @@ instance AsciiHexWritable Int8 where
     asciiHexLowerNoLead = word8HexNoLead lowerTable #. fromIntegral
     asciiHexUpperNoLead = word8HexNoLead upperTable #. fromIntegral
 
-instance AsciiHexWritable Int16 where
+instance AsciiHexEncodable Int16 where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -205,7 +200,7 @@ instance AsciiHexWritable Int16 where
     asciiHexLowerNoLead = asciiHexNoLead lowerTable 
     asciiHexUpperNoLead = asciiHexNoLead upperTable
 
-instance AsciiHexWritable Int32 where
+instance AsciiHexEncodable Int32 where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -215,7 +210,7 @@ instance AsciiHexWritable Int32 where
     asciiHexLowerNoLead = asciiHexNoLead lowerTable
     asciiHexUpperNoLead = asciiHexNoLead upperTable
 
-instance AsciiHexWritable Int64 where
+instance AsciiHexEncodable Int64 where
     {-# INLINE asciiHexLower #-}
     {-# INLINE asciiHexUpper #-}
     {-# INLINE asciiHexLowerNoLead #-}
@@ -226,23 +221,23 @@ instance AsciiHexWritable Int64 where
     asciiHexUpperNoLead = asciiHexNoLead upperTable
 
 {-# INLINE word8Hex #-}
-word8Hex :: EncodingTable -> Write Word8
+word8Hex :: EncodingTable -> Encoding Word8
 word8Hex table = 
-    exactWrite 2 $ \x op -> poke (castPtr op) =<< encode8_as_16h table x
+    exactEncoding 2 $ \x op -> poke (castPtr op) =<< encode8_as_16h table x
 
 {-# INLINE word16Hex #-}
-word16Hex :: EncodingTable -> Write Word16
+word16Hex :: EncodingTable -> Encoding Word16
 word16Hex table = 
-    write2 (word8Hex table) (word8Hex table) #.
+    encode2 (word8Hex table) (word8Hex table) #.
            (\x -> let {-# INLINE byte #-}
                       byte n = fromIntegral $ x `shiftR` (n * 8) in
                   (byte 1, byte 0) 
             )
 
 {-# INLINE word32Hex #-}
-word32Hex :: EncodingTable -> Write Word32
+word32Hex :: EncodingTable -> Encoding Word32
 word32Hex table = 
-    write4 (word8Hex table) (word8Hex table) 
+    encode4 (word8Hex table) (word8Hex table) 
            (word8Hex table) (word8Hex table) #.
            (\x -> let {-# INLINE byte #-}
                       byte n = fromIntegral $ x `shiftR` (n * 8) in
@@ -250,9 +245,9 @@ word32Hex table =
             )
 
 {-# INLINE word64Hex #-}
-word64Hex :: EncodingTable -> Write Word64
+word64Hex :: EncodingTable -> Encoding Word64
 word64Hex table = 
-    write8 (word8Hex table) (word8Hex table) 
+    encode8 (word8Hex table) (word8Hex table) 
            (word8Hex table) (word8Hex table)
            (word8Hex table) (word8Hex table)
            (word8Hex table) (word8Hex table) #.
@@ -263,30 +258,30 @@ word64Hex table =
             )
 
 {-# INLINE word8HexNoLead #-}
-word8HexNoLead :: EncodingTable -> Write Word8
+word8HexNoLead :: EncodingTable -> Encoding Word8
 word8HexNoLead table =
-    writeIf (<16) word4Hex (word8Hex table)
+    encodeIf (<16) word4Hex (word8Hex table)
   where
     {-# INLINE word4Hex #-}
     word4Hex =
-        exactWrite 1 $ \x op -> poke op =<< encode4_as_8 table x
+        exactEncoding 1 $ \x op -> poke op =<< encode4_as_8 table x
 
 {-# INLINE asciiHexNoLead #-}
 asciiHexNoLead :: forall a. (Storable a, Bits a, Integral a) 
-                     => EncodingTable -> Write a
+                     => EncodingTable -> Encoding a
 asciiHexNoLead table =
-    boundedWrite (2 * maxBytes) (pokeIO . f)
+    boundedEncoding (2 * maxBytes) (pokeIO . f)
   where
     maxBytes = (sizeOf (undefined :: a))
 
-    f 0  op0 = do runWrite word8 (fromIntegral $ fromEnum '0') op0
+    f 0  op0 = do runEncoding word8 (fromIntegral $ fromEnum '0') op0
     f x0 op0 = do
         let n0 = findNonZeroByte (maxBytes - 1)
             x  = fromIntegral $ x0 `shiftR` (n0 * 8)
         if x < 16
           then do poke op0 =<< encode4_as_8 table x
-                  runWrite (asciiHexBytes n0      ) x0 (op0 `plusPtr` 1)
-          else do runWrite (asciiHexBytes (n0 + 1)) x0 op0
+                  runEncoding (asciiHexBytes n0      ) x0 (op0 `plusPtr` 1)
+          else do runEncoding (asciiHexBytes (n0 + 1)) x0 op0
       where
         findNonZeroByte !n
           | (x0 `shiftR` (8 * n) .&. 0xff) == 0 = findNonZeroByte (n - 1)
@@ -294,9 +289,9 @@ asciiHexNoLead table =
 
 
     {-# INLINE asciiHexBytes #-}
-    asciiHexBytes :: (Bits a, Integral a) => Int -> Write a
+    asciiHexBytes :: (Bits a, Integral a) => Int -> Encoding a
     asciiHexBytes n0 =
-        boundedWrite (2 * max 0 n0) (pokeIO . g)
+        boundedEncoding (2 * max 0 n0) (pokeIO . g)
       where
         g !x0 !op0 = 
             loop (n0 - 1) op0

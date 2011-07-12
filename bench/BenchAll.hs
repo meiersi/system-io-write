@@ -7,15 +7,15 @@
 -- Stability   : experimental
 -- Portability : tested on GHC only
 --
--- Benchmark all Writes implemented directly.
+-- Benchmark all Encodings implemented directly.
 module BenchAll where
 
 import Prelude hiding (words)
 import Foreign
 import Criterion.Main
 
-import System.IO.Write
-import System.IO.Write.Bench
+import Codec.Bounded.Encoding
+import Codec.Bounded.Encoding.Bench
 
 
 ------------------------------------------------------------------------------
@@ -26,7 +26,7 @@ nRepl :: Int
 nRepl = 10000
 
 {-# INLINE benchmark #-}
-benchmark :: String -> Write Int -> Benchmark
+benchmark :: String -> Encoding Int -> Benchmark
 benchmark name w = 
   bench (name ++" (" ++ show nRepl ++ ")") $ writeInts nRepl w
 
@@ -34,7 +34,6 @@ main :: IO ()
 main = Criterion.Main.defaultMain 
   [ bgroup "Char"
     [ benchmark "utf8"             $ utf8             #. toEnum
-    , benchmark "asciiUnsafe"      $ unsafeAscii      #. toEnum
     , benchmark "asciiDrop"        $ asciiDrop        #. toEnum
     , benchmark "asciiReplace ' '" $ asciiReplace ' ' #. toEnum
     ]
@@ -57,32 +56,32 @@ main = Criterion.Main.defaultMain
       , benchmark "64"   $ word64LE #. fromIntegral
       ]
     , bgroup "utf8HexUpper"
-      [ benchmark "8"    $ (utf8HexUpper :: Write Word8) #. fromIntegral
-      , benchmark "16"   $ (utf8HexUpper :: Write Word16) #. fromIntegral
-      , benchmark "32"   $ (utf8HexUpper :: Write Word32) #. fromIntegral
-      , benchmark "64"   $ (utf8HexUpper :: Write Word64) #. fromIntegral
-      , benchmark "Host" $ (utf8HexUpper :: Write Word) #. fromIntegral
+      [ benchmark "8"    $ (utf8HexUpper :: Encoding Word8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexUpper :: Encoding Word16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexUpper :: Encoding Word32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexUpper :: Encoding Word64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexUpper :: Encoding Word) #. fromIntegral
       ]
     , bgroup "utf8HexUpperNoLead"
-      [ benchmark "8"    $ (utf8HexUpperNoLead :: Write Word8) #. fromIntegral
-      , benchmark "16"   $ (utf8HexUpperNoLead :: Write Word16) #. fromIntegral
-      , benchmark "32"   $ (utf8HexUpperNoLead :: Write Word32) #. fromIntegral
-      , benchmark "64"   $ (utf8HexUpperNoLead :: Write Word64) #. fromIntegral
-      , benchmark "Host" $ (utf8HexUpperNoLead :: Write Word) #. fromIntegral
+      [ benchmark "8"    $ (utf8HexUpperNoLead :: Encoding Word8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexUpperNoLead :: Encoding Word16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexUpperNoLead :: Encoding Word32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexUpperNoLead :: Encoding Word64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexUpperNoLead :: Encoding Word) #. fromIntegral
       ]
     , bgroup "utf8HexLower"
-      [ benchmark "8"    $ (utf8HexLower :: Write Word8) #. fromIntegral
-      , benchmark "16"   $ (utf8HexLower :: Write Word16) #. fromIntegral
-      , benchmark "32"   $ (utf8HexLower :: Write Word32) #. fromIntegral
-      , benchmark "64"   $ (utf8HexLower :: Write Word64) #. fromIntegral
-      , benchmark "Host" $ (utf8HexLower :: Write Word) #. fromIntegral
+      [ benchmark "8"    $ (utf8HexLower :: Encoding Word8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexLower :: Encoding Word16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexLower :: Encoding Word32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexLower :: Encoding Word64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexLower :: Encoding Word) #. fromIntegral
       ]
     , bgroup "utf8HexLowerNoLead"
-      [ benchmark "8"    $ (utf8HexLowerNoLead :: Write Word8) #. fromIntegral
-      , benchmark "16"   $ (utf8HexLowerNoLead :: Write Word16) #. fromIntegral
-      , benchmark "32"   $ (utf8HexLowerNoLead :: Write Word32) #. fromIntegral
-      , benchmark "64"   $ (utf8HexLowerNoLead :: Write Word64) #. fromIntegral
-      , benchmark "Host" $ (utf8HexLowerNoLead :: Write Word) #. fromIntegral
+      [ benchmark "8"    $ (utf8HexLowerNoLead :: Encoding Word8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexLowerNoLead :: Encoding Word16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexLowerNoLead :: Encoding Word32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexLowerNoLead :: Encoding Word64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexLowerNoLead :: Encoding Word) #. fromIntegral
       ]
     ]
   , bgroup "Int"
@@ -104,32 +103,32 @@ main = Criterion.Main.defaultMain
       , benchmark "64"   $ int64LE #. fromIntegral
       ]
     , bgroup "utf8HexUpper"
-      [ benchmark "8"    $ (utf8HexUpper :: Write Int8) #. fromIntegral
-      , benchmark "16"   $ (utf8HexUpper :: Write Int16) #. fromIntegral
-      , benchmark "32"   $ (utf8HexUpper :: Write Int32) #. fromIntegral
-      , benchmark "64"   $ (utf8HexUpper :: Write Int64) #. fromIntegral
-      , benchmark "Host" $ (utf8HexUpper :: Write Int)
+      [ benchmark "8"    $ (utf8HexUpper :: Encoding Int8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexUpper :: Encoding Int16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexUpper :: Encoding Int32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexUpper :: Encoding Int64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexUpper :: Encoding Int)
       ]
     , bgroup "utf8HexUpperNoLead"
-      [ benchmark "8"    $ (utf8HexUpperNoLead :: Write Int8) #. fromIntegral
-      , benchmark "16"   $ (utf8HexUpperNoLead :: Write Int16) #. fromIntegral
-      , benchmark "32"   $ (utf8HexUpperNoLead :: Write Int32) #. fromIntegral
-      , benchmark "64"   $ (utf8HexUpperNoLead :: Write Int64) #. fromIntegral
-      , benchmark "Host" $ (utf8HexUpperNoLead :: Write Int)
+      [ benchmark "8"    $ (utf8HexUpperNoLead :: Encoding Int8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexUpperNoLead :: Encoding Int16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexUpperNoLead :: Encoding Int32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexUpperNoLead :: Encoding Int64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexUpperNoLead :: Encoding Int)
       ]
     , bgroup "utf8HexLower"
-      [ benchmark "8"    $ (utf8HexLower :: Write Int8) #. fromIntegral
-      , benchmark "16"   $ (utf8HexLower :: Write Int16) #. fromIntegral
-      , benchmark "32"   $ (utf8HexLower :: Write Int32) #. fromIntegral
-      , benchmark "64"   $ (utf8HexLower :: Write Int64) #. fromIntegral
-      , benchmark "Host" $ (utf8HexLower :: Write Int)
+      [ benchmark "8"    $ (utf8HexLower :: Encoding Int8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexLower :: Encoding Int16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexLower :: Encoding Int32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexLower :: Encoding Int64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexLower :: Encoding Int)
       ]
     , bgroup "utf8HexLowerNoLead"
-      [ benchmark "8"    $ (utf8HexLowerNoLead :: Write Int8) #. fromIntegral
-      , benchmark "16"   $ (utf8HexLowerNoLead :: Write Int16) #. fromIntegral
-      , benchmark "32"   $ (utf8HexLowerNoLead :: Write Int32) #. fromIntegral
-      , benchmark "64"   $ (utf8HexLowerNoLead :: Write Int64) #. fromIntegral
-      , benchmark "Host" $ (utf8HexLowerNoLead :: Write Int)
+      [ benchmark "8"    $ (utf8HexLowerNoLead :: Encoding Int8) #. fromIntegral
+      , benchmark "16"   $ (utf8HexLowerNoLead :: Encoding Int16) #. fromIntegral
+      , benchmark "32"   $ (utf8HexLowerNoLead :: Encoding Int32) #. fromIntegral
+      , benchmark "64"   $ (utf8HexLowerNoLead :: Encoding Int64) #. fromIntegral
+      , benchmark "Host" $ (utf8HexLowerNoLead :: Encoding Int)
       ]
     ]
   ]

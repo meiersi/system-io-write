@@ -4,8 +4,8 @@ inlined at compile time. The main use of this /write abstraction/ is to
 share the implementation of encodings of Haskell values where the maximal
 number of bytes to be written per value is statically known.
 
-This library only provides types and combinators for defining writes. A
-number of actual writes is provided by the @encoding-writes@ library. They
+This library only provides types and combinators for defining encodings. A
+number of actual encodings is provided by the @encoding-encodings@ library. They
 are used together with the @Builder@ type from the @bytestring@ library to
 provide builders for a variety of encodings in the @encoding-builders@
 library.

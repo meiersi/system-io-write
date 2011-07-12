@@ -20,7 +20,7 @@
 #include "MachDeps.h"
 #endif
 
-module System.IO.Write.Internal.UncheckedShifts (
+module Codec.Bounded.Encoding.Internal.UncheckedShifts (
     shiftr_w16
   , shiftr_w32
   , shiftr_w64

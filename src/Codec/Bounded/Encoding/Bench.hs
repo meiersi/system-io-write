@@ -7,24 +7,27 @@
 -- Stability   : experimental
 -- Portability : tested on GHC only
 --
--- Support for benchmarking writes.
+-- Support for benchmarking encodings. See the file 'bench/BenchAll.hs'
+-- distributed with this library for example benchmarks.
 --
-module System.IO.Write.Bench (
-    writeReplicated
-  , writeInts
+-- FIXME: Inline a simple example.
+--
+module Codec.Bounded.Encoding.Bench (
+    writeInts
+  , writeReplicated
   , writeList
   ) where
 
-import System.IO.Write.Internal
+import Codec.Bounded.Encoding.Internal
 
 import Foreign
 
--- | Repeatedly execute a 'Write' on a fixed value. The output is written
+-- | Repeatedly execute an 'Encoding' on a fixed value. The output is written
 -- consecutively into a single array to incorporate to-memory-bandwidth in the
 -- measurement.
 {-# INLINE writeReplicated #-}
 writeReplicated :: Int     -- ^ Number of repetitions
-                -> Write a -- ^ 'Write' to execute
+                -> Encoding a -- ^ 'Encoding' to execute
                 -> a       -- ^ Value to encode
                 -> IO ()   -- ^ 'IO' action to benchmark
 writeReplicated n0 w x 
@@ -34,14 +37,14 @@ writeReplicated n0 w x
       withForeignPtr fpbuf (loop n0) >> return ()
   where
     loop 0 !op = return op
-    loop n !op = runWrite w x op >>= loop (n - 1)
+    loop n !op = runEncoding w x op >>= loop (n - 1)
 
--- | Execute a 'Write' on each value of bounded-length prefix of a list. The
+-- | Execute an 'Encoding' on each value of bounded-length prefix of a list. The
 -- output is written consecutively into a single array to incorporate
 -- to-memory-bandwidth in the measurement.
 {-# INLINE writeInts #-}
 writeInts :: Int       -- ^ Maximal 'Int' to write
-          -> Write Int -- ^ 'Write' to execute
+          -> Encoding Int -- ^ 'Encoding' to execute
           -> IO ()     -- ^ 'IO' action to benchmark
 writeInts n0 w
   | n0 <= 0   = return ()
@@ -51,15 +54,15 @@ writeInts n0 w
   where
     loop !n !op
       | n <= 0    = return op
-      | otherwise = runWrite w n op >>= loop (n - 1)
+      | otherwise = runEncoding w n op >>= loop (n - 1)
 
 
--- | Execute a 'Write' on each value of bounded-length prefix of a list. The
+-- | Execute an 'Encoding' on each value of bounded-length prefix of a list. The
 -- output is written consecutively into a single array to incorporate
 -- to-memory-bandwidth in the measurement.
 {-# INLINE writeList #-}
 writeList :: Int     -- ^ Maximal length of prefix
-          -> Write a -- ^ 'Write' to execute
+          -> Encoding a -- ^ 'Encoding' to execute
           -> [a]     -- ^ Values to encode
           -> IO ()   -- ^ 'IO' action to benchmark
 writeList n0 w xs0
@@ -72,5 +75,5 @@ writeList n0 w xs0
       | n <= 0    = return op
       | otherwise = case xs of
           []      -> return op
-          (x:xs') -> runWrite w x op >>= loop (n - 1) xs'
+          (x:xs') -> runEncoding w x op >>= loop (n - 1) xs'
 

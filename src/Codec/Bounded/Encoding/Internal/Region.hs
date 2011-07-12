@@ -7,10 +7,10 @@
 -- Portability : tested on GHC only
 --
 -- This module is intended to be imported qualified. It provides a minimal
--- version of bytestrings for testing writes and building encoding tables.  It
+-- version of bytestrings for testing encodings and building encoding tables.  It
 -- is neither tuned for efficiency nor does it provide much type-safety.
 -- 
-module System.IO.Write.Internal.Region (
+module Codec.Bounded.Encoding.Internal.Region (
     Region
   , fromList
   , toList

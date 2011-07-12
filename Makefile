@@ -24,6 +24,7 @@ core-all:
 
 clean-bench-all:
 	rm -f bench/*.o bench/*.hi
+	rm -f test/BenchAll
 
 
 ##############################################################################
@@ -32,6 +33,7 @@ clean-bench-all:
 
 clean-test-all:
 	rm -f test/*.o test/*.hi
+	rm -f test/TestAll
 
 test-all:
 	$(GHC) --make -O2 -threaded -rtsopts -fforce-recomp -main-is TestAll test/TestAll.hs

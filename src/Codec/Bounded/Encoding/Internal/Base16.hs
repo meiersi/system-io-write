@@ -14,7 +14,7 @@
 -- benchmarks on a 32-bit machine it turned out to be the fastest
 -- implementation option.
 --
-module System.IO.Write.Internal.Base16 (
+module Codec.Bounded.Encoding.Internal.Base16 (
     EncodingTable
   , upperTable
   , lowerTable
@@ -25,7 +25,7 @@ module System.IO.Write.Internal.Base16 (
 
 import Control.Applicative 
 import Foreign
-import qualified System.IO.Write.Internal.Region as R
+import qualified Codec.Bounded.Encoding.Internal.Region as R
 
 
 -- Creating the encoding tables

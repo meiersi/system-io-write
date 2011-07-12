@@ -1,0 +1,90 @@
+Name:                bounded-encoding
+Version:             0.1.0.0
+Synopsis:            Encodings that result in a bounded number of bytes
+
+Description:         
+   Bounded encodings are encodings of Haskell values where the maximal number
+   of bytes written can be bounded /independent/ of the value being encoded.
+   This bound is exploited in the 'bytestring' library
+   (<http://hackage.haskell.org/package/bytestring>) to provide more efficient
+   lazy bytestring builders for encoding Haskell values as sequences of bytes.
+   .
+   This library provides bounded encodings for standard encoding formats of
+   standard Haskell types together with a set of combinators that allow
+   defining bounded encodings for further encoding formats.
+   Currently, the library supports the following encodings.
+   .
+     - Big-endian, little-endian, and host-endian encoding of 
+       fixed-width integers.
+   .
+     - ASCII and UTF-8 encoding of characters.
+   .
+     - Hexadecimal encoding of fixed-width integers using ASCII
+       or UTF-8 encoded characters.
+   .
+   Support for the following encodings is planned.
+   .
+     - UTF-16 and UTF-32 character encoding in both the
+       little-endian as well as the big-endian variant.
+   .
+     - Decimal encoding of integers using the supported
+       character encodings.
+   .
+     - Binary, decimal, and hexadecimal encodings of 'Float'
+       and 'Double' values.
+   .
+   Note that efficiency depends on many factors: architecture, operating
+   system, compiler, etc. We recommend benchmarking your bounded encodings in
+   order to be sure that they are really efficient for your use case. The
+   "Codec.Bounded.Encoding.Bench" module and the 'criterion' library
+   (<http://hackage.haskell.org/package/criterion>) assist you in this task.
+
+Author:              Simon Meier, Jasper Van der Jeugt
+Copyright:           2010, 2011 Simon Meier
+                     2010 Jasper Van der Jeugt
+Maintainer:          Simon Meier <iridcode@gmail.com>
+
+License:             BSD3
+License-file:        LICENSE
+
+Homepage:            http://github.com/meiersi/bounded-encoding
+Bug-Reports:         http://github.com/meiersi/bounded-encoding/issues
+Stability:           Experimental
+
+Category:            Codec
+Build-type:          Simple
+Cabal-version:       >= 1.6
+
+Extra-source-files:  
+                     README.markdown
+                     CHANGES
+                     Makefile
+                     test/TestAll.hs
+                     bench/BenchAll.hs
+
+Source-repository head
+  Type: git
+  Location: https://github.com/meiersi/bounded-encoding.git
+
+Library
+  ghc-options:       -Wall
+
+  hs-source-dirs:    src
+
+  exposed-modules:   
+                     Codec.Bounded.Encoding
+                     Codec.Bounded.Encoding.Int
+                     Codec.Bounded.Encoding.Word
+                     -- Codec.Bounded.Encoding.Floating
+                     Codec.Bounded.Encoding.Char.Utf8
+                     Codec.Bounded.Encoding.Char.Ascii
+                     Codec.Bounded.Encoding.Bench
+                     Codec.Bounded.Encoding.Internal
+                     Codec.Bounded.Encoding.Internal.Test
+
+  other-modules:     Codec.Bounded.Encoding.Internal.UncheckedShifts
+                     Codec.Bounded.Encoding.Internal.Region
+                     Codec.Bounded.Encoding.Internal.Base16
+
+  build-depends:     base == 4.*
+
