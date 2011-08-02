@@ -10,10 +10,10 @@
 --
 module Codec.Bounded.Encoding.Char.Utf8
     ( 
-      -- * UTF-8 encoding of single characters
+      -- ** UTF-8 encoding of Unicode characters
       utf8
 
-      -- * Hexadecimal encoding using UTF-8 encoded characters
+      -- ** Hexadecimal encoding using UTF-8 encoded characters
     , utf8HexLower
     , utf8HexUpper
     , utf8HexLowerNoLead

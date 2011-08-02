@@ -73,16 +73,17 @@ Library
 
   exposed-modules:   
                      Codec.Bounded.Encoding
+                     Codec.Bounded.Encoding.Internal
+                     Codec.Bounded.Encoding.Internal.Test
+
+  other-modules:     
+                     Codec.Bounded.Encoding.Bench
                      Codec.Bounded.Encoding.Int
                      Codec.Bounded.Encoding.Word
                      Codec.Bounded.Encoding.Floating
                      Codec.Bounded.Encoding.Char.Utf8
                      Codec.Bounded.Encoding.Char.Ascii
-                     Codec.Bounded.Encoding.Bench
-                     Codec.Bounded.Encoding.Internal
-                     Codec.Bounded.Encoding.Internal.Test
-
-  other-modules:     Codec.Bounded.Encoding.Internal.UncheckedShifts
+                     Codec.Bounded.Encoding.Internal.UncheckedShifts
                      Codec.Bounded.Encoding.Internal.Region
                      Codec.Bounded.Encoding.Internal.Base16
 

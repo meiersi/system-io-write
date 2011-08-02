@@ -15,7 +15,6 @@ import Foreign
 import Criterion.Main
 
 import Codec.Bounded.Encoding
-import Codec.Bounded.Encoding.Bench
 
 
 ------------------------------------------------------------------------------
@@ -34,8 +33,8 @@ main :: IO ()
 main = Criterion.Main.defaultMain 
   [ bgroup "Char"
     [ benchmark "utf8"             $ utf8             #. toEnum
-    , benchmark "asciiDrop"        $ asciiDrop        #. toEnum
-    , benchmark "asciiReplace ' '" $ asciiReplace ' ' #. toEnum
+    -- , benchmark "asciiDrop"        $ asciiDrop        #. toEnum
+    -- , benchmark "asciiReplace ' '" $ asciiReplace ' ' #. toEnum
     ]
   , bgroup "Word"
     [ bgroup "HostEndian"

@@ -21,10 +21,9 @@
 -- 'Data.ByteString.Lazy.Builder.Extras' module of the 'bytestring' library.
 --
 module Codec.Bounded.Encoding (
-  -- * Bounded encodings
     Encoding
 
-  -- ** Basic combinators
+  -- * Encoding combinators
   , (#.)
   , comapEncoding
   , emptyEncoding
@@ -32,26 +31,67 @@ module Codec.Bounded.Encoding (
   , encodeMaybe
   , encodeEither
   , encode2
-
-  -- ** Convenience combinators
+  , encode3
+  , encode4
+  , encode8
   , (#>)
   , prepend
   , (<#)
   , append
-  , encode3
-  , encode4
-  , encode8
 
-  -- ** Encoding Unicode characters
-  , module Codec.Bounded.Encoding.Char.Ascii
-  , module Codec.Bounded.Encoding.Char.Utf8
+  -- * Standard encodings of Haskell values
 
-  -- ** Encoding fixed-width integers
-  , module Codec.Bounded.Encoding.Int
-  , module Codec.Bounded.Encoding.Word
+  -- ** UTF-8 encoding
+  , utf8
 
-  -- ** Encoding floating point numbers
-  , module Codec.Bounded.Encoding.Floating
+  -- *** Hexadecimal
+  , AsciiHexEncodable
+  , utf8HexLower
+  , utf8HexUpper
+  , utf8HexLowerNoLead
+  , utf8HexUpperNoLead
+
+  -- ** Binary encoding
+  , int8
+  , word8
+
+  -- *** Big-endian
+  , int16BE
+  , int32BE
+  , int64BE
+
+  , word16BE
+  , word32BE
+  , word64BE
+
+  , floatBE
+  , doubleBE
+
+  -- *** Little-endian
+  , int16LE
+  , int32LE
+  , int64LE
+
+  , word16LE
+  , word32LE
+  , word64LE
+
+  , floatLE
+  , doubleLE
+
+  -- *** Non-portable, host-dependent
+  , intHost
+  , int16Host
+  , int32Host
+  , int64Host
+
+  , wordHost
+  , word16Host
+  , word32Host
+  , word64Host
+
+  , floatHost
+  , doubleHost
 
   -- * Debugging
   -- | Note that the following two functions are intended for debugging use
@@ -60,6 +100,9 @@ module Codec.Bounded.Encoding (
   -- 'Data.ByteString.Lazy.Builder.Extras' module of the 'bytestring' library.
   , evalEncoding
   , showEncoding
+
+  -- * Benchmarking
+  , writeInts
 
   ) where
 
@@ -71,3 +114,4 @@ import Codec.Bounded.Encoding.Int
 import Codec.Bounded.Encoding.Floating
 
 import Codec.Bounded.Encoding.Internal.Test
+import Codec.Bounded.Encoding.Bench
