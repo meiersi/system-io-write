@@ -7,18 +7,75 @@
 -- Stability   : experimental
 -- Portability : tested on GHC only
 --
--- Bounded encodings are encodings of Haskell values where the maximal number
--- of bytes written can be bounded /independent/ of the value being encoded.
--- This bound is exploited in the 'bytestring' library
--- (<http://hackage.haskell.org/package/bytestring>) to provide more efficient
--- lazy bytestring builders for encoding Haskell values as sequences of bytes.
---  
--- This library provides bounded encodings for standard encoding formats of
--- standard Haskell types together with a set of combinators that allow
--- defining bounded encodings for further encoding formats. A typical use-case
--- of the combinators is implementing a bounded encoding that fuses 
--- escaping and character encoding. Check the corresponding example in the
--- 'Data.ByteString.Lazy.Builder.Extras' module of the 'bytestring' library.
+-- An /encoding/ is a conversion function of Haskell values to sequences of
+-- bytes. A /bounded encoding/ is an encoding that never results in a sequence
+-- longer than some fixed number of bytes. This number of bytes must be
+-- independent of the value being encoded. Typical examples of bounded
+-- encodings are the big-endian encoding of a 'Word64', which results always
+-- in exactly 8 bytes, or the UTF-8 encoding of a 'Char', which results always
+-- in less or equal to 4 bytes.
+--
+-- Typically, encodings are implemented efficiently by allocating a buffer (an
+-- array of bytes) and repeatedly executing the following two steps: (1)
+-- writing to the buffer until it is full and (2) handing over the filled part
+-- to the consumer of the encoded value. Step (1) is where bounded encodings
+-- are used. We must use a bounded encoding, as we must check that there is
+-- enough free space /before/ actually writing to the buffer.
+--
+-- In term of expressivity, it would be sufficient to construct all encodings
+-- from the single bounded encoding that encodes a 'Word8' as-is. However,
+-- this is not sufficient in terms of efficiency. It results in unnecessary
+-- buffer-full checks and it complicates the program-flow for writing to the
+-- buffer, as buffer-full checks are interleaved with analyzing the value to be
+-- encoded (e.g., think about the program-flow for UTF-8 encoding). This has a
+-- significant effect on overall encoding performance, as encoding primitive
+-- Haskell values such as 'Word8's or 'Char's lies at the heart of every
+-- encoding implementation.
+--
+-- The bounded 'Encoding's provided by this module remove this performance
+-- problem. Intuitively, they consist of a tuple of the bound on the maximal
+-- number of bytes written and the actual implementation of the encoding as a
+-- function that modifies a mutable buffer. Hence when executing a bounded
+-- 'Encoding', the buffer-full check can be done once before the actual writing
+-- to the buffer. The provided 'Encoding's also take care to implement the
+-- actual writing to the buffer efficiently. Moreover, combinators are
+-- provided to construct new bounded encodings from the provided ones. 
+--
+-- A typical example for using the combinators is a bounded 'Encoding' that
+-- combines escaping the ''' and '\' characters (like the following 'escape'
+-- function) with UTF-8 encoding.
+--
+-- > escape :: Char -> [Char]
+-- > escape '\'' = "\\'"
+-- > escape '\\' = "\\\\"
+-- > escape c    = [c]
+--
+-- The corresponding bounded 'Encoding' is the following.
+--
+-- > {-# INLINE escapeChar #-}
+-- > escapeUtf8 :: Encoding Char
+-- > escapeUtf8 = 
+-- >     encodeIf ('\'' ==) (encode2 utf8 utf8 #. const ('\\','\'')) $
+-- >     encodeIf ('\\' ==) (encode2 utf8 utf8 #. const ('\\','\\')) $
+-- >     utf8
+--
+-- The definition of 'escapeUtf8' is more complicated than 'escape', because
+-- the combinators ('encodeIf', 'encode2', '#.', and 'utf8') used in
+-- 'escapeChar' compute both the bound on the maximal number of bytes written
+-- (8 for 'escapeUtf8') as well as the low-level buffer manipulation required
+-- to implement the encoding. Bounded 'Encoding's should always be inlined.
+-- Otherwise, the compiler cannot compute the bound on the maximal number of
+-- bytes written at compile-time. Without inlinining, it would also fail to
+-- optimize the constant encoding of the escape characters in the above
+-- example. Functions that execute bounded 'Encoding's also perform
+-- suboptimally, if the definition of the bounded 'Encoding' is not inlined.
+-- Therefore, we add an 'INLINE' pragma to 'escapeUtf8'.
+--
+-- Currently, the only library that executes bounded 'Encoding's is the
+-- 'bytestring' library (<http://hackage.haskell.org/package/bytestring>). It
+-- uses bounded 'Encoding's to implement most of its lazy bytestring builders.
+-- Executing a bounded encoding should be done using the corresponding
+-- functions in the lazy bytestring builder 'Extras' module.
 --
 module Codec.Bounded.Encoding (
     Encoding
@@ -115,3 +172,5 @@ import Codec.Bounded.Encoding.Floating
 
 import Codec.Bounded.Encoding.Internal.Test
 import Codec.Bounded.Encoding.Bench
+
+import Foreign
