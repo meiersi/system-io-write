@@ -50,8 +50,8 @@ module Codec.Bounded.Encoding (
   , module Codec.Bounded.Encoding.Int
   , module Codec.Bounded.Encoding.Word
 
-  -- -- * Encoding floating point numbers
-  -- , module Codec.Bounded.Encoding.Floating
+  -- ** Encoding floating point numbers
+  , module Codec.Bounded.Encoding.Floating
 
   -- * Debugging
   -- | Note that the following two functions are intended for debugging use
@@ -68,6 +68,6 @@ import Codec.Bounded.Encoding.Char.Ascii
 import Codec.Bounded.Encoding.Char.Utf8
 import Codec.Bounded.Encoding.Word
 import Codec.Bounded.Encoding.Int
--- import Codec.Bounded.Encoding.Floating
+import Codec.Bounded.Encoding.Floating
 
 import Codec.Bounded.Encoding.Internal.Test

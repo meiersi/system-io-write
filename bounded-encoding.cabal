@@ -75,7 +75,7 @@ Library
                      Codec.Bounded.Encoding
                      Codec.Bounded.Encoding.Int
                      Codec.Bounded.Encoding.Word
-                     -- Codec.Bounded.Encoding.Floating
+                     Codec.Bounded.Encoding.Floating
                      Codec.Bounded.Encoding.Char.Utf8
                      Codec.Bounded.Encoding.Char.Ascii
                      Codec.Bounded.Encoding.Bench

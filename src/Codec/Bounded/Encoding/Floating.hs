@@ -1,4 +1,4 @@
-{-# LANGUAGE MonoPatBinds, MagicHash #-}
+{-# LANGUAGE ScopedTypeVariables, MonoPatBinds, MagicHash #-}
 -- |
 -- Copyright   : (c) 2010 Simon Meier
 --
@@ -10,9 +10,6 @@
 --
 -- 'Encoding's for encoding floating point numbers represented as 'Float' or
 -- 'Double' values using big-endian, little-endian, and host-endian encodings.
---
--- FIXME: Ensure that this module is only compiled on compilers where its use
--- is safe.
 --
 module Codec.Bounded.Encoding.Floating
     ( 
@@ -35,12 +32,41 @@ module Codec.Bounded.Encoding.Floating
 import Codec.Bounded.Encoding.Internal (Encoding, writeStorable, (#.) )
 import Codec.Bounded.Encoding.Word     (word32BE, word32LE, word64BE, word64LE)
 
-import Foreign (Word32, Word64)
+import Foreign 
 
-import Unsafe.Coerce (unsafeCoerce)
+-- | Coerce a 'Float' to a 'Word32' as-is.
+{-# INLINE coerceFloatToWord32 #-}
+coerceFloatToWord32 :: Float -> Word32
+coerceFloatToWord32 = fromFloat
 
-{- These implementations are unsound: See http://hackage.haskell.org/trac/ghc/ticket/4092
- - 
+-- | Coerce a 'Double' to a 'Word64' as-is.
+{-# INLINE coerceDoubleToWord64 #-}
+coerceDoubleToWord64 :: Double -> Word64
+coerceDoubleToWord64 = fromFloat
+
+-- The implementation of the following function is based on
+--
+-- http://hackage.haskell.org/package/data-binary-ieee754-0.4.2.1
+--
+-- Module: Data.Binary.IEEE754
+-- Copyright: 2010 John Millikin <jmillikin@gmail.com>
+-- License: MIT
+--
+fromFloat :: forall w f. (Storable w, Storable f, RealFloat f) => f -> w
+fromFloat x
+  | isIEEE x && sizeOf (undefined :: f) == sizeOf (undefined :: w) =
+      unsafePerformIO $ alloca $ \buf -> do
+	poke (castPtr buf) x
+	peek buf
+  | otherwise = error 
+      "Coded.Bounded.Encoding.Floating: \
+      \missing support for encoding floating point numbers on your platform!"
+
+{- The speed of the above implementation is not great. The plan is to use the
+   implementations below for real speed once the following ticket is solved:
+ 
+   See http://hackage.haskell.org/trac/ghc/ticket/4092
+  
 -- | Coerce a 'Float' to a 'Word32'; i.e., interpret the 32-bit 'Float' value
 -- as an unsigned 32-bit 'Int. 
 --
@@ -55,50 +81,37 @@ coerceFloatToWord32 = unsafeCoerce
 {-# INLINE coerceDoubleToWord64 #-}
 coerceDoubleToWord64 :: Double -> Word64
 coerceDoubleToWord64 = unsafeCoerce
-
 -}
 
--- TODO: implement and check "isEEE x" and "(sizeOf x) == 8"
---
-{-# INLINE coerceFloatToWord32 #-}
-coerceFloatToWord32 :: Float -> Word32
-coerceFloatToWord32 = undefined
-
--- | Coerce a 'Double' to a 'Word64'.
-{-# INLINE coerceDoubleToWord64 #-}
-coerceDoubleToWord64 :: Double -> Word64
-coerceDoubleToWord64 = undefined
-
--- | Encoding a 'Float' in big endian format.
+-- | Encode a 'Float' in big endian format.
 {-# INLINE floatBE #-}
 floatBE :: Encoding Float
 floatBE = word32BE #. coerceFloatToWord32
 
--- | Encoding a 'Float' in little endian format.
+-- | Encode a 'Float' in little endian format.
 {-# INLINE floatLE #-}
 floatLE :: Encoding Float
 floatLE = word32LE #. coerceFloatToWord32
 
--- | Encoding a 'Double' in big endian format.
+-- | Encode a 'Double' in big endian format.
 {-# INLINE doubleBE #-}
 doubleBE :: Encoding Double
 doubleBE = word64BE #. coerceDoubleToWord64
 
--- | Encoding a 'Double' in little endian format.
+-- | Encode a 'Double' in little endian format.
 {-# INLINE doubleLE #-}
 doubleLE :: Encoding Double
 doubleLE = word64LE #. coerceDoubleToWord64
 
 
-
--- | Encoding a 'Float' in native host order and host endianness. Values written
+-- | Encode a 'Float' in native host order and host endianness. Values written
 -- this way are not portable to different endian machines, without conversion.
 --
 {-# INLINE floatHost #-}
 floatHost :: Encoding Float
 floatHost = writeStorable
 
--- | Encoding a 'Double' in native host order and host endianness.
+-- | Encode a 'Double' in native host order and host endianness.
 {-# INLINE doubleHost #-}
 doubleHost :: Encoding Double
 doubleHost = writeStorable

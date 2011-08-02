@@ -131,5 +131,15 @@ main = Criterion.Main.defaultMain
       , benchmark "Host" $ (utf8HexLowerNoLead :: Encoding Int)
       ]
     ]
+  , bgroup "Float"
+    [ benchmark "BE"   $ floatBE   #. fromIntegral
+    , benchmark "LE"   $ floatLE   #. fromIntegral
+    , benchmark "Host" $ floatHost #. fromIntegral
+    ]
+  , bgroup "Double"
+    [ benchmark "BE"   $ doubleBE   #. fromIntegral
+    , benchmark "LE"   $ doubleLE   #. fromIntegral
+    , benchmark "Host" $ doubleHost #. fromIntegral
+    ]
   ]
 

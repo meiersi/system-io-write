@@ -17,7 +17,6 @@ import Foreign
 import Numeric (showHex)
 
 import Codec.Bounded.Encoding
-import Codec.Bounded.Encoding.Char.Utf8
 import Codec.Bounded.Encoding.Internal.Test
 
 import System.ByteOrder  -- from byteorder-1.0.3
@@ -25,6 +24,7 @@ import System.ByteOrder  -- from byteorder-1.0.3
 import Test.Framework
 import Test.Framework.Providers.QuickCheck2
 
+import Unsafe.Coerce (unsafeCoerce)
 
 main :: IO ()
 main = Test.Framework.defaultMain $ return $ testAll
@@ -33,6 +33,7 @@ testAll :: Test
 testAll = testGroup "bounded-encoding"
   [ testWord
   , testInt
+  , testFloating
   , testCharUtf8
   ]
 
@@ -77,23 +78,66 @@ testInt = testGroup "Codec.Bounded.Encoding.Int"
   ]
 
 prop_bigEndian :: (Storable a, Bits a, Integral a) => Encoding a -> a -> Bool
-prop_bigEndian =
-    cmpEncodingErr f
-  where
-    f x = map (fromIntegral . (x `shiftR`) . (8*)) $ reverse [0..sizeOf x - 1]
+prop_bigEndian = cmpEncodingErr bigEndianList
 
 prop_littleEndian :: (Storable a, Bits a, Integral a) => Encoding a -> a -> Bool
-prop_littleEndian =
-    cmpEncodingErr f
-  where
-    f x = map (fromIntegral . (x `shiftR`) . (8*)) $ [0..sizeOf x - 1]
+prop_littleEndian = cmpEncodingErr littleEndianList
 
 prop_hostEndian :: (Storable a, Bits a, Integral a) => Encoding a -> a -> Bool
-prop_hostEndian = case byteOrder of
-  LittleEndian -> prop_littleEndian
-  BigEndian    -> prop_bigEndian
-  _            -> error $ 
-      "bounded-encoding: unsupported byteorder '" ++ show byteOrder ++ "'"
+prop_hostEndian = cmpEncodingErr hostEndianList
+
+bigEndianList :: (Storable a, Bits a, Integral a) => a -> [Word8]
+bigEndianList = reverse . littleEndianList
+
+littleEndianList :: (Storable a, Bits a, Integral a) => a -> [Word8]
+littleEndianList x = 
+    map (fromIntegral . (x `shiftR`) . (8*)) $ [0..sizeOf x - 1]
+
+hostEndianList :: (Storable a, Bits a, Integral a) => a -> [Word8]
+hostEndianList = case byteOrder of
+    LittleEndian -> littleEndianList
+    BigEndian    -> bigEndianList
+    _            -> error $ 
+        "bounded-encoding: unsupported byteorder '" ++ show byteOrder ++ "'"
+
+
+------------------------------------------------------------------------------
+-- Floating point numbers
+------------------------------------------------------------------------------
+
+testFloating :: Test
+testFloating = testGroup "Codec.Bounded.Encoding.Floating"
+  [ testProperty "floatBE"    $ prop_Float bigEndianList    floatBE
+  , testProperty "floatLE"    $ prop_Float littleEndianList floatLE
+  , testProperty "floatHost"  $ prop_Float hostEndianList   floatHost
+
+  , testProperty "doubleBE"    $ prop_Double bigEndianList    doubleBE
+  , testProperty "doubleLE"    $ prop_Double littleEndianList doubleLE
+  , testProperty "doubleHost"  $ prop_Double hostEndianList   doubleHost
+  ]
+  where
+    prop_Float f  = cmpEncodingErr (f . coerceFloatToWord32)
+    prop_Double f = cmpEncodingErr (f . coerceDoubleToWord64)
+
+-- Note that the following use of unsafeCoerce is not guaranteed to be 
+-- safe on GHC 7.0 and less. The reason is probably the following ticket:
+--
+--   http://hackage.haskell.org/trac/ghc/ticket/4092
+--
+-- However, that only applies if the value is loaded in a register. We
+-- avoid this by coercing only boxed values and ensuring that they
+-- remain boxed using a NOINLINE pragma.
+-- 
+
+-- | Coerce a 'Float' to a 'Word32'.
+{-# NOINLINE coerceFloatToWord32 #-}
+coerceFloatToWord32 :: Float -> Word32
+coerceFloatToWord32 = unsafeCoerce
+
+-- | Coerce a 'Double' to a 'Word64'.
+{-# NOINLINE coerceDoubleToWord64 #-}
+coerceDoubleToWord64 :: Double -> Word64
+coerceDoubleToWord64 = unsafeCoerce
 
 
 ------------------------------------------------------------------------------
