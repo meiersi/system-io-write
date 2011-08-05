@@ -12,7 +12,7 @@
 -- The encodings provided in this module are intended for constructing output
 -- in formats that explicitly restrict the character encoding to 7-bit ASCII
 -- encoded characters. In all other cases, a lossless Unicode encoding (e.g.,
--- "Codec.Bounded.Encoding.Char.Utf8") is a better choice.
+-- "Codec.Bounded.Encoding.Utf8") is a better choice.
 --
 module Codec.Bounded.Encoding.Char.Ascii
     ( 

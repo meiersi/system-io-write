@@ -3,3 +3,7 @@
 
 - implement 64-bit hex encoding more cleverly; i.e., use only one of the
   expensive 64-bit shifts.
+
+- Haddock reference to #. operator.
+
+- benchmarking of all encodings

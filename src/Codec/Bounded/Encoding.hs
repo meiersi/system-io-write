@@ -42,25 +42,29 @@
 -- provided to construct new bounded encodings from the provided ones. 
 --
 -- A typical example for using the combinators is a bounded 'Encoding' that
--- combines escaping the ''' and '\' characters (like the following 'escape'
--- function) with UTF-8 encoding.
+-- combines escaping the ' and \\ characters with UTF-8 encoding. More
+-- precisely, the escaping to be done is the one implemented by the following
+-- @escape@ function.
 --
 -- > escape :: Char -> [Char]
 -- > escape '\'' = "\\'"
 -- > escape '\\' = "\\\\"
 -- > escape c    = [c]
 --
--- The corresponding bounded 'Encoding' is the following.
+-- The bounded 'Encoding' that combines this escaping with UTF-8 encoding is
+-- the following.
 --
+-- > import Codec.Bounded.Encoding.Utf8 (char)
+-- >
 -- > {-# INLINE escapeChar #-}
 -- > escapeUtf8 :: Encoding Char
 -- > escapeUtf8 = 
--- >     encodeIf ('\'' ==) (encode2 utf8 utf8 #. const ('\\','\'')) $
--- >     encodeIf ('\\' ==) (encode2 utf8 utf8 #. const ('\\','\\')) $
--- >     utf8
+-- >     encodeIf ('\'' ==) (char <#> char #. const ('\\','\'')) $
+-- >     encodeIf ('\\' ==) (char <#> char #. const ('\\','\\')) $
+-- >     char
 --
 -- The definition of 'escapeUtf8' is more complicated than 'escape', because
--- the combinators ('encodeIf', 'encode2', '#.', and 'utf8') used in
+-- the combinators ('encodeIf', 'encode2', '#.', and 'char') used in
 -- 'escapeChar' compute both the bound on the maximal number of bytes written
 -- (8 for 'escapeUtf8') as well as the low-level buffer manipulation required
 -- to implement the encoding. Bounded 'Encoding's should always be inlined.
@@ -69,7 +73,7 @@
 -- optimize the constant encoding of the escape characters in the above
 -- example. Functions that execute bounded 'Encoding's also perform
 -- suboptimally, if the definition of the bounded 'Encoding' is not inlined.
--- Therefore, we add an 'INLINE' pragma to 'escapeUtf8'.
+-- Therefore we add an 'INLINE' pragma to 'escapeUtf8'.
 --
 -- Currently, the only library that executes bounded 'Encoding's is the
 -- 'bytestring' library (<http://hackage.haskell.org/package/bytestring>). It
@@ -87,68 +91,67 @@ module Codec.Bounded.Encoding (
   , encodeIf
   , encodeMaybe
   , encodeEither
+  , (<#>)
   , encode2
-  , encode3
-  , encode4
-  , encode8
-  , (#>)
-  , prepend
-  , (<#)
-  , append
+  -- , encode3
+  -- , encode4
+  -- , encode8
+  -- , (#>)
+  -- , prepend
+  -- , (<#)
+  -- , append
 
   -- * Standard encodings of Haskell values
 
   -- ** UTF-8 encoding
-  , utf8
-
-  -- *** Hexadecimal
-  , AsciiHexEncodable
-  , utf8HexLower
-  , utf8HexUpper
-  , utf8HexLowerNoLead
-  , utf8HexUpperNoLead
+  --
+  -- | UTF-8 encoding of 'Char's and numbers in decimal and hexadecimal formats
+  -- is provided by the "Codec.Bounded.Encoding.Utf8" module.
 
   -- ** Binary encoding
-  , int8
+  -- , int8
   , word8
 
   -- *** Big-endian
-  , int16BE
-  , int32BE
-  , int64BE
+  -- , int16BE
+  -- , int32BE
+  -- , int64BE
 
   , word16BE
   , word32BE
   , word64BE
 
-  , floatBE
-  , doubleBE
+  -- , floatBE
+  -- , doubleBE
 
   -- *** Little-endian
-  , int16LE
-  , int32LE
-  , int64LE
+  -- , int16LE
+  -- , int32LE
+  -- , int64LE
 
   , word16LE
   , word32LE
   , word64LE
 
-  , floatLE
-  , doubleLE
+  -- , floatLE
+  -- , doubleLE
 
   -- *** Non-portable, host-dependent
-  , intHost
-  , int16Host
-  , int32Host
-  , int64Host
+  -- , intHost
+  -- , int16Host
+  -- , int32Host
+  -- , int64Host
 
   , wordHost
   , word16Host
   , word32Host
   , word64Host
 
-  , floatHost
-  , doubleHost
+  -- , floatHost
+  -- , doubleHost
+
+  -- * Benchmarking
+  , benchIntEncoding
 
   -- * Debugging
   -- | Note that the following two functions are intended for debugging use
@@ -158,17 +161,12 @@ module Codec.Bounded.Encoding (
   , evalEncoding
   , showEncoding
 
-  -- * Benchmarking
-  , writeInts
-
   ) where
 
 import Codec.Bounded.Encoding.Internal
-import Codec.Bounded.Encoding.Char.Ascii
-import Codec.Bounded.Encoding.Char.Utf8
 import Codec.Bounded.Encoding.Word
-import Codec.Bounded.Encoding.Int
-import Codec.Bounded.Encoding.Floating
+-- import Codec.Bounded.Encoding.Int
+-- import Codec.Bounded.Encoding.Floating
 
 import Codec.Bounded.Encoding.Internal.Test
 import Codec.Bounded.Encoding.Bench

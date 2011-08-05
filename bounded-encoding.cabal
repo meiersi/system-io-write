@@ -73,6 +73,7 @@ Library
 
   exposed-modules:   
                      Codec.Bounded.Encoding
+                     Codec.Bounded.Encoding.Utf8
                      Codec.Bounded.Encoding.Internal
                      Codec.Bounded.Encoding.Internal.Test
 
@@ -81,7 +82,6 @@ Library
                      Codec.Bounded.Encoding.Int
                      Codec.Bounded.Encoding.Word
                      Codec.Bounded.Encoding.Floating
-                     Codec.Bounded.Encoding.Char.Utf8
                      Codec.Bounded.Encoding.Char.Ascii
                      Codec.Bounded.Encoding.Internal.UncheckedShifts
                      Codec.Bounded.Encoding.Internal.Region
@@ -89,3 +89,6 @@ Library
 
   build-depends:     base == 4.*
 
+  extensions:        CPP, ForeignFunctionInterface
+
+  c-sources:         cbits/itoa.c

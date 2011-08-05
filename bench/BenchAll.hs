@@ -31,7 +31,13 @@ benchmark name w =
 
 main :: IO ()
 main = Criterion.Main.defaultMain 
-  [ bgroup "Char"
+  [ 
+    -- benchmark "utf8HexUpperNoLead :: Int32"   $ (utf8HexUpperNoLead :: Encoding Word32) #. fromIntegral
+    benchmark "int32Utf8 Decimal"   $ (int32Utf8 Decimal) #. fromIntegral
+  , benchmark "int32Utf8 HexUpper"  $ (int32Utf8 HexUpper) #. fromIntegral
+  ]
+  {-
+  , bgroup "Char"
     [ benchmark "utf8"             $ utf8             #. toEnum
     -- , benchmark "asciiDrop"        $ asciiDrop        #. toEnum
     -- , benchmark "asciiReplace ' '" $ asciiReplace ' ' #. toEnum
@@ -65,6 +71,7 @@ main = Criterion.Main.defaultMain
       [ benchmark "8"    $ (utf8HexUpperNoLead :: Encoding Word8) #. fromIntegral
       , benchmark "16"   $ (utf8HexUpperNoLead :: Encoding Word16) #. fromIntegral
       , benchmark "32"   $ (utf8HexUpperNoLead :: Encoding Word32) #. fromIntegral
+      , benchmark "32"   $ (int32Utf8 HexUpper) #. fromIntegral
       , benchmark "64"   $ (utf8HexUpperNoLead :: Encoding Word64) #. fromIntegral
       , benchmark "Host" $ (utf8HexUpperNoLead :: Encoding Word) #. fromIntegral
       ]
@@ -141,4 +148,4 @@ main = Criterion.Main.defaultMain
     , benchmark "Host" $ doubleHost #. fromIntegral
     ]
   ]
-
+-}

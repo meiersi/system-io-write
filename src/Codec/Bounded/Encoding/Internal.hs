@@ -60,6 +60,7 @@ module Codec.Bounded.Encoding.Internal (
   -- abstraction.
   , (#.)
   , comapEncoding
+  , (<#>)
   , encode2
   , emptyEncoding
   , encodeIf
@@ -141,6 +142,7 @@ pokeN size io = Poke $ \op -> io op >> return (op `plusPtr` size)
 ------------------------------------------------------------------------------
 
 infixl 4 #.   -- comapEncoding
+infixr 5 <#>  -- encode2
 infixr 5 #>   -- prepend
 infixl 4 <#   -- append
 
@@ -294,10 +296,26 @@ encodeEither wLeft wRight =
     Encoding (maxBound wLeft wRight)
           (Poke . either (runEncoding wLeft) (runEncoding wRight))
 
--- | Sequentially compose two 'Encoding's.
+-- | A right-associative infix synonym for 'encode2', which composes
+-- two 'Encoding's sequentially. For example,
 --
--- > showEncoding (encode2 utf8 utf8) ('x','y') = "xy"
+-- > showEncoding (char <#> char) ('x','y') = "xy"
 --
+-- where 'Codec.Bounded.Encoding.Utf8.char' UTF-8 encodes a 'Char'. 
+-- You can combine multiple encodings using '(<#>)' multiple times.
+--
+-- > showEncoding (char <#> char <#> char) ('x',('y','z')) = 'xyz'
+--
+-- Combined with '#.' you can also prepend and/or append fixed values
+-- to an encoding.
+--
+-- > showEncoding (char <#> char <#> char #. (\x -> ('"', (x, '"')))) 'x' = '"x"'
+--
+{-# INLINE (<#>) #-}
+(<#>) :: Encoding a -> Encoding b -> Encoding (a, b)
+(<#>) = encode2
+
+-- | Sequentially compose two 'Encoding's. 
 {-# INLINE encode2 #-}
 encode2 :: Encoding a -> Encoding b -> Encoding (a, b)
 encode2 w1 w2 =

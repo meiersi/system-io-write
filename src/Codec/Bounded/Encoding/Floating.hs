@@ -59,8 +59,7 @@ fromFloat x
 	poke (castPtr buf) x
 	peek buf
   | otherwise = error 
-      "Coded.Bounded.Encoding.Floating: \
-      \missing support for encoding floating point numbers on your platform!"
+      "Coded.Bounded.Encoding.Floating: missing support for encoding floating point numbers on your platform!"
 
 {- The speed of the above implementation is not great. The plan is to use the
    implementations below for real speed once the following ticket is solved:

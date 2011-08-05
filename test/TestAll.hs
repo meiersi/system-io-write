@@ -17,6 +17,7 @@ import Foreign
 import Numeric (showHex)
 
 import Codec.Bounded.Encoding
+import Codec.Bounded.Encoding.Utf8
 import Codec.Bounded.Encoding.Internal.Test
 
 import System.ByteOrder  -- from byteorder-1.0.3
@@ -31,10 +32,10 @@ main = Test.Framework.defaultMain $ return $ testAll
 
 testAll :: Test
 testAll = testGroup "bounded-encoding"
-  [ testWord
-  , testInt
-  , testFloating
-  , testCharUtf8
+  [ -- testWord
+  -- , testInt
+  -- , testFloating
+    testCharUtf8
   ]
 
 ------------------------------------------------------------------------------
@@ -59,6 +60,7 @@ testWord = testGroup "Codec.Bounded.Encoding.Word"
   , testProperty "wordHost"   $ prop_hostEndian   wordHost
   ]
 
+{-
 testInt :: Test
 testInt = testGroup "Codec.Bounded.Encoding.Int"
   [ testProperty "int8"      $ prop_bigEndian    int8
@@ -76,6 +78,7 @@ testInt = testGroup "Codec.Bounded.Encoding.Int"
   , testProperty "int64Host" $ prop_hostEndian   int64Host
   , testProperty "intHost"   $ prop_hostEndian   intHost
   ]
+-}
 
 prop_bigEndian :: (Storable a, Bits a, Integral a) => Encoding a -> a -> Bool
 prop_bigEndian = cmpEncodingErr bigEndianList
@@ -105,6 +108,7 @@ hostEndianList = case byteOrder of
 -- Floating point numbers
 ------------------------------------------------------------------------------
 
+{-
 testFloating :: Test
 testFloating = testGroup "Codec.Bounded.Encoding.Floating"
   [ testProperty "floatBE"    $ prop_Float bigEndianList    floatBE
@@ -118,6 +122,7 @@ testFloating = testGroup "Codec.Bounded.Encoding.Floating"
   where
     prop_Float f  = cmpEncodingErr (f . coerceFloatToWord32)
     prop_Double f = cmpEncodingErr (f . coerceDoubleToWord64)
+-}
 
 -- Note that the following use of unsafeCoerce is not guaranteed to be 
 -- safe on GHC 7.0 and less. The reason is probably the following ticket:
@@ -144,8 +149,63 @@ coerceDoubleToWord64 = unsafeCoerce
 -- Utf-8 encoding
 ------------------------------------------------------------------------------
 
+-- TODO: Test boundaries of decimal encoding.
+
 testCharUtf8 :: Test
-testCharUtf8 = testGroup "Codec.Bounded.Encoding.Char.Utf8"
+testCharUtf8 = testGroup "Codec.Bounded.Encoding.Utf8"
+  [ testProperty "char" (cmpEncodingErr (encodeUtf8 . return) char)
+
+  , testProperty "int8"  $ prop_dec int8Dec
+  , testProperty "int16" $ prop_dec int16Dec
+  , testProperty "int32" $ prop_dec int32Dec
+  , testProperty "int64" $ prop_dec int64Dec
+  , testProperty "int"   $ prop_dec intDec
+
+  , testProperty "word8"  $ prop_dec word8Dec
+  , testProperty "word16" $ prop_dec word16Dec
+  , testProperty "word32" $ prop_dec word32Dec
+  , testProperty "word64" $ prop_dec word64Dec
+  , testProperty "word"   $ prop_dec wordDec
+
+  , testProperty "word8Hex"  $ prop_hex word8Hex
+  , testProperty "word16Hex" $ prop_hex word16Hex
+  , testProperty "word32Hex" $ prop_hex word32Hex
+  , testProperty "word64Hex" $ prop_hex word64Hex
+  , testProperty "wordHex"   $ prop_hex wordHex
+
+  , testProperty "word8HexFixed"  $ prop_hexFixed word8HexFixed
+  , testProperty "word16HexFixed" $ prop_hexFixed word16HexFixed
+  , testProperty "word32HexFixed" $ prop_hexFixed word32HexFixed
+  , testProperty "word64HexFixed" $ prop_hexFixed word64HexFixed
+  , testProperty "wordHexFixed"   $ prop_hexFixed wordHexFixed
+
+  ]
+
+prop_dec :: Show a => Encoding a -> a -> Bool
+prop_dec = cmpEncodingErr (encodeUtf8 . show)
+
+prop_hex :: (Integral a, Show a) => Encoding a -> a -> Bool
+prop_hex = cmpEncodingErr (encodeUtf8 . (\x -> showHex x ""))
+
+prop_hexFixed :: (Storable a, Integral a, Show a) => Encoding a -> a -> Bool
+prop_hexFixed = cmpEncodingErr f
+  where
+    f x      = encodeUtf8 $ pad (2 * sizeOf x) $ showHex x ""
+    pad n cs = replicate (n - length cs) '0' ++ cs
+
+{-
+prop_dec :: (Show a, Storable a, Integral b) 
+         => (a -> b) -> Encoding a -> a -> Bool
+prop_dec convChar convArg =
+    cmpEncodingErr f
+  where
+    f x      = encodeUtf8 $ pad (2 * sizeOf x) $ map convChar $ showHex (convArg x) ""
+    pad n cs = replicate (n - length cs) '0' ++ cs
+-}
+
+{-
+testCharUtf8 :: Test
+testCharUtf8 = testGroup "Codec.Bounded.Encoding.Utf8"
   [ testProperty "utf8" (cmpEncodingErr (encodeUtf8 . return) utf8)
 
   , testProperty "utf8HexLower :: Word"   $ prop_hexLower id (utf8HexLower :: Encoding Word  )
@@ -198,6 +258,7 @@ testCharUtf8 = testGroup "Codec.Bounded.Encoding.Char.Utf8"
   , testProperty "utf8HexUpperNoLead :: Int32" $ prop_hexUpperNoLead (fromIntegral :: Int32 -> Word32) (utf8HexUpperNoLead :: Encoding Int32)
   , testProperty "utf8HexUpperNoLead :: Int64" $ prop_hexUpperNoLead (fromIntegral :: Int64 -> Word64) (utf8HexUpperNoLead :: Encoding Int64)
   ]
+-}
 
 
 -- | Encode a Haskell String to a list of Word8 values, in UTF8 format.
@@ -225,6 +286,7 @@ encodeUtf8 = concatMap (map fromIntegral . go . ord)
                         , 0x80 + oc .&. 0x3f
                         ]
 
+{-
 
 -- Hex encoding properties
 --------------------------
@@ -256,3 +318,4 @@ prop_hexNoLead convChar convArg =
   where
     f x = encodeUtf8 $ map convChar $ showHex (convArg x) ""
 
+-}
